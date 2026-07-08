@@ -30,9 +30,14 @@ class Kdna_Flipbook_Cpt {
 	 * Register the custom post type from the saved settings.
 	 *
 	 * Kept static so the activation hook can call it directly before the first
-	 * rewrite flush.
+	 * rewrite flush. Nothing is registered until Nick has named the post type on
+	 * the setup screen, so no placeholder post type appears before then.
 	 */
 	public static function register_post_type() {
+		if ( ! Kdna_Flipbook_Settings::is_configured() ) {
+			return;
+		}
+
 		$singular = Kdna_Flipbook_Settings::get( 'cpt_singular', __( 'Client', 'kdna-flipbook' ) );
 		$plural   = Kdna_Flipbook_Settings::get( 'cpt_plural', __( 'Clients', 'kdna-flipbook' ) );
 		$slug     = Kdna_Flipbook_Settings::get( 'cpt_slug', 'kdna-client' );
