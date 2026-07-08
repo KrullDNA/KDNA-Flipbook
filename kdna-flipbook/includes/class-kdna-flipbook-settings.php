@@ -103,8 +103,12 @@ class Kdna_Flipbook_Settings {
 			'autoplay'          => false,
 			'autoplay_delay'    => 5,
 			'toolbar_behaviour' => 'fade',
+			'toolbar_position'  => 'over',
 			'theme'             => 'light',
 			'custom_color'      => '#2271b1',
+			'hint_show'         => true,
+			'hint_position'     => 'sidebar',
+			'hint_text'         => __( 'Move your mouse off the document and the navigation will disappear.', 'kdna-flipbook' ),
 		);
 	}
 
@@ -339,6 +343,34 @@ class Kdna_Flipbook_Settings {
 		}
 		echo '</select>';
 
+		// Toolbar position.
+		echo '<p style="margin-top:12px;"><strong>' . esc_html__( 'Toolbar position', 'kdna-flipbook' ) . '</strong></p>';
+		echo '<select name="' . esc_attr( $name ) . '[toolbar_position]">';
+		foreach ( array(
+			'over'  => __( 'Over the document', 'kdna-flipbook' ),
+			'below' => __( 'Below the flipbook', 'kdna-flipbook' ),
+		) as $value => $label ) {
+			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $config['toolbar_position'], $value, false ), esc_html( $label ) );
+		}
+		echo '</select>';
+
+		// Hint text.
+		echo '<p style="margin-top:12px;"><label><input type="checkbox" name="' . esc_attr( $name ) . '[hint_show]" value="1" ' . checked( ! empty( $config['hint_show'] ), true, false ) . ' /> <strong>' . esc_html__( 'Show a hint for readers', 'kdna-flipbook' ) . '</strong></label></p>';
+		echo '<select name="' . esc_attr( $name ) . '[hint_position]">';
+		foreach ( array(
+			'sidebar' => __( 'Top of the sidebar', 'kdna-flipbook' ),
+			'below'   => __( 'Below the flipbook', 'kdna-flipbook' ),
+		) as $value => $label ) {
+			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $config['hint_position'], $value, false ), esc_html( $label ) );
+		}
+		echo '</select>';
+		printf(
+			'<p><input type="text" name="%1$s[hint_text]" value="%2$s" class="large-text" /></p>',
+			esc_attr( $name ),
+			esc_attr( $config['hint_text'] )
+		);
+		echo '<p class="description">' . esc_html__( 'A short line of copy for readers, for example explaining that moving off the document hides the toolbar. Top of the sidebar shows it above the document list.', 'kdna-flipbook' ) . '</p>';
+
 		// Chrome theme.
 		echo '<p style="margin-top:12px;"><strong>' . esc_html__( 'Chrome theme', 'kdna-flipbook' ) . '</strong></p>';
 		echo '<select name="' . esc_attr( $name ) . '[theme]">';
@@ -444,13 +476,21 @@ class Kdna_Flipbook_Settings {
 		$clean    = array();
 
 		// Toggle controls: a checkbox is present only when ticked.
-		$toggles = array( 'arrows', 'thumbnails', 'zoom', 'fullscreen', 'toc', 'download', 'share', 'sound', 'deeplink', 'sidebar' );
+		$toggles = array( 'arrows', 'thumbnails', 'zoom', 'fullscreen', 'toc', 'download', 'share', 'sound', 'deeplink', 'sidebar', 'hint_show' );
 		foreach ( $toggles as $key ) {
 			$clean[ $key ] = ! empty( $input[ $key ] );
 		}
 
 		$behaviour                  = isset( $input['toolbar_behaviour'] ) ? sanitize_key( $input['toolbar_behaviour'] ) : '';
 		$clean['toolbar_behaviour'] = in_array( $behaviour, array( 'fade', 'persistent' ), true ) ? $behaviour : $defaults['toolbar_behaviour'];
+
+		$position                  = isset( $input['toolbar_position'] ) ? sanitize_key( $input['toolbar_position'] ) : '';
+		$clean['toolbar_position'] = in_array( $position, array( 'over', 'below' ), true ) ? $position : $defaults['toolbar_position'];
+
+		$hint_position          = isset( $input['hint_position'] ) ? sanitize_key( $input['hint_position'] ) : '';
+		$clean['hint_position'] = in_array( $hint_position, array( 'sidebar', 'below' ), true ) ? $hint_position : $defaults['hint_position'];
+
+		$clean['hint_text'] = isset( $input['hint_text'] ) ? sanitize_text_field( $input['hint_text'] ) : $defaults['hint_text'];
 
 		$theme          = isset( $input['theme'] ) ? sanitize_key( $input['theme'] ) : '';
 		$clean['theme'] = in_array( $theme, array( 'light', 'dark', 'custom' ), true ) ? $theme : $defaults['theme'];

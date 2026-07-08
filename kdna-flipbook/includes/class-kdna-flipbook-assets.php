@@ -262,9 +262,24 @@ class Kdna_Flipbook_Assets {
 
 		$show_sidebar = ! empty( $config['sidebar'] );
 
+		// Below the flipbook the toolbar never overlaps content, so it stays put.
+		$position  = 'below' === $config['toolbar_position'] ? 'below' : 'over';
+		$behaviour = 'below' === $position ? 'persistent' : $config['toolbar_behaviour'];
+
+		// Work out the reader hint and where it sits.
+		$hint_text     = isset( $config['hint_text'] ) ? trim( (string) $config['hint_text'] ) : '';
+		$show_hint     = ! empty( $config['hint_show'] ) && '' !== $hint_text;
+		$hint_position = 'below' === $config['hint_position'] ? 'below' : 'sidebar';
+		// With no sidebar, a sidebar hint falls back to below the flipbook.
+		if ( 'sidebar' === $hint_position && ! $show_sidebar ) {
+			$hint_position = 'below';
+		}
+		$hint_html = $show_hint ? '<p class="kdna-flipbook__hint">' . esc_html( $hint_text ) . '</p>' : '';
+
 		$classes = array( 'kdna-flipbook' );
 		$classes[] = 'kdna-flipbook--theme-' . $config['theme'];
-		$classes[] = 'kdna-flipbook--toolbar-' . $config['toolbar_behaviour'];
+		$classes[] = 'kdna-flipbook--toolbar-' . $behaviour;
+		$classes[] = 'kdna-flipbook--toolbar-pos-' . $position;
 		if ( $show_sidebar ) {
 			$classes[] = 'kdna-flipbook--has-sidebar';
 		}
@@ -287,7 +302,7 @@ class Kdna_Flipbook_Assets {
 				'sound'      => ! empty( $config['sound'] ),
 				'deeplink'   => ! empty( $config['deeplink'] ),
 			),
-			'behaviour' => $config['toolbar_behaviour'],
+			'behaviour' => $behaviour,
 			'autoplay'  => ! empty( $config['autoplay'] ),
 			'autoplayDelay' => max( 1, (int) $config['autoplay_delay'] ),
 			'start'     => array(
@@ -301,7 +316,8 @@ class Kdna_Flipbook_Assets {
 		$html .= '<div class="kdna-flipbook__layout">';
 
 		if ( $show_sidebar ) {
-			$html .= self::render_sidebar( $flipbooks, $active );
+			$sidebar_hint = ( 'sidebar' === $hint_position ) ? $hint_html : '';
+			$html        .= self::render_sidebar( $flipbooks, $active, $sidebar_hint );
 		}
 
 		$html .= '<div class="kdna-flipbook__viewer">';
@@ -323,6 +339,11 @@ class Kdna_Flipbook_Assets {
 		$html .= '</div>'; // .kdna-flipbook__viewer
 
 		$html .= '</div>'; // .kdna-flipbook__layout
+
+		if ( 'below' === $hint_position ) {
+			$html .= $hint_html;
+		}
+
 		$html .= '</div>'; // .kdna-flipbook
 
 		return $html;
@@ -350,12 +371,17 @@ class Kdna_Flipbook_Assets {
 	/**
 	 * Build the sidebar list of flipbooks.
 	 *
-	 * @param array $flipbooks List of flipbooks.
-	 * @param int   $active    Active index.
+	 * @param array  $flipbooks List of flipbooks.
+	 * @param int    $active    Active index.
+	 * @param string $hint_html Optional hint markup shown above the list.
 	 * @return string
 	 */
-	protected static function render_sidebar( $flipbooks, $active ) {
+	protected static function render_sidebar( $flipbooks, $active, $hint_html = '' ) {
 		$html  = '<nav class="kdna-flipbook__sidebar" aria-label="' . esc_attr__( 'Flipbooks', 'kdna-flipbook' ) . '">';
+
+		// Hint sits inside the sidebar, above the document list.
+		$html .= $hint_html;
+
 		$html .= '<ul class="kdna-flipbook__list">';
 
 		foreach ( $flipbooks as $index => $flipbook ) {

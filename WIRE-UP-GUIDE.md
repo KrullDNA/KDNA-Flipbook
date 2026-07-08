@@ -11,7 +11,7 @@ plugin, so nothing loads from an outside server.
 
 ## 1. Install and activate
 
-1. Go to **Plugins, Add New, Upload Plugin** and upload `kdna-flipbook-v1.0.3.zip`.
+1. Go to **Plugins, Add New, Upload Plugin** and upload `kdna-flipbook-v1.0.4.zip`.
 2. Click **Install Now**, then **Activate**.
 3. On activation you are taken to a short setup screen.
 
@@ -86,8 +86,9 @@ that widget. Usually you place it once on the template that all client pages use
 - **Controls**: show or hide the arrows, thumbnails, zoom, fullscreen, table of
   contents, download, share, flip sound and deep-linking.
 - **Sidebar**: show or hide it. On mobile the sidebar moves above the flipbook.
-- **Toolbar and chrome**: fade-away or persistent toolbar, and a light, dark or
-  custom colour theme.
+- **Toolbar and chrome**: toolbar over the document (fade-away or persistent) or
+  below the flipbook, a light, dark or custom colour theme, and an editable
+  reader hint shown at the top of the sidebar or below the flipbook.
 
 ## 7. Style the widget
 
