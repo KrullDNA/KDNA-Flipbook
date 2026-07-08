@@ -6,6 +6,9 @@
  * single page with swipe. Pages render on demand, with a spinner while a page is
  * being drawn.
  *
+ * A sidebar lists every flipbook of the entry. Clicking one loads it into the
+ * viewer without a full page reload.
+ *
  * Initialises on both DOM ready and the kdna:content-added event so it works when
  * content is injected dynamically.
  */
@@ -21,18 +24,18 @@
 	}
 
 	/**
-	 * Single viewer instance.
+	 * Single viewer instance, managing a set of flipbooks.
 	 *
 	 * @param {HTMLElement} root The .kdna-flipbook container.
 	 * @constructor
 	 */
 	function KdnaFlipbookViewer( root ) {
 		this.root = root;
-		this.pdfUrl = root.getAttribute( 'data-pdf-url' );
 		this.stage = root.querySelector( '.kdna-flipbook__stage' );
 		this.book = root.querySelector( '.kdna-flipbook__book' );
 		this.overlay = root.querySelector( '.kdna-flipbook__overlay' );
 		this.message = root.querySelector( '.kdna-flipbook__message' );
+		this.items = Array.prototype.slice.call( root.querySelectorAll( '.kdna-flipbook__item' ) );
 
 		this.pdf = null;
 		this.numPages = 0;
@@ -41,27 +44,101 @@
 		this.pageFlip = null;
 		this.pageRatio = 1.414; // Height over width, defaults to A4 portrait.
 		this.basePageWidth = 480;
+		this.activeIndex = -1;
+		this.loadToken = 0;
 	}
 
 	/**
-	 * Kick off loading and rendering.
+	 * Wire up the sidebar and load the active flipbook.
 	 */
 	KdnaFlipbookViewer.prototype.init = function () {
-		if ( ! this.pdfUrl || ! window.pdfjsLib || ! window.St || ! window.St.PageFlip ) {
+		if ( ! window.pdfjsLib || ! window.St || ! window.St.PageFlip ) {
 			this.showError();
 			return;
 		}
 
 		var self = this;
-		this.showOverlay( true );
 
-		window.pdfjsLib.getDocument( { url: this.pdfUrl } ).promise
+		// Bind the sidebar items to switch flipbook.
+		this.items.forEach( function ( item, index ) {
+			item.addEventListener( 'click', function ( event ) {
+				event.preventDefault();
+				self.loadFlipbook( index );
+			} );
+		} );
+
+		this.loadFlipbook( this.startIndex() );
+	};
+
+	/**
+	 * Work out which flipbook should open first.
+	 *
+	 * @return {number} A zero-based flipbook index.
+	 */
+	KdnaFlipbookViewer.prototype.startIndex = function () {
+		for ( var i = 0; i < this.items.length; i++ ) {
+			if ( this.items[ i ].classList.contains( 'is-active' ) ) {
+				return i;
+			}
+		}
+		return 0;
+	};
+
+	/**
+	 * Return the PDF URL for a flipbook index.
+	 *
+	 * Falls back to the root data attribute so a single-PDF container still works.
+	 *
+	 * @param {number} index Flipbook index.
+	 * @return {string}
+	 */
+	KdnaFlipbookViewer.prototype.pdfUrlFor = function ( index ) {
+		if ( this.items.length && this.items[ index ] ) {
+			return this.items[ index ].getAttribute( 'data-pdf-url' ) || '';
+		}
+		return this.root.getAttribute( 'data-pdf-url' ) || '';
+	};
+
+	/**
+	 * Load a flipbook into the viewer, replacing whatever is showing.
+	 *
+	 * @param {number} index Flipbook index.
+	 */
+	KdnaFlipbookViewer.prototype.loadFlipbook = function ( index ) {
+		if ( index === this.activeIndex ) {
+			return;
+		}
+
+		var url = this.pdfUrlFor( index );
+		if ( ! url ) {
+			this.showError();
+			return;
+		}
+
+		this.activeIndex = index;
+		this.setActiveItem( index );
+
+		// Guard against overlapping loads when a reader switches quickly.
+		var token = ++this.loadToken;
+		var self = this;
+
+		this.hideError();
+		this.showOverlay( true );
+		this.teardown();
+
+		window.pdfjsLib.getDocument( { url: url } ).promise
 			.then( function ( pdf ) {
+				if ( token !== self.loadToken ) {
+					return null;
+				}
 				self.pdf = pdf;
 				self.numPages = pdf.numPages;
 				return pdf.getPage( 1 );
 			} )
 			.then( function ( page ) {
+				if ( ! page || token !== self.loadToken ) {
+					return null;
+				}
 				var viewport = page.getViewport( { scale: 1 } );
 				self.pageRatio = viewport.height / viewport.width;
 				self.buildPages();
@@ -69,14 +146,58 @@
 				return self.renderAround( self.currentIndex() );
 			} )
 			.then( function () {
+				if ( token !== self.loadToken ) {
+					return;
+				}
 				self.showOverlay( false );
 			} )
 			.catch( function ( error ) {
+				if ( token !== self.loadToken ) {
+					return;
+				}
 				self.showError();
 				if ( window.console && window.console.error ) {
 					window.console.error( 'KDNA Flipbook:', error );
 				}
 			} );
+	};
+
+	/**
+	 * Highlight the active sidebar item.
+	 *
+	 * @param {number} index Active index.
+	 */
+	KdnaFlipbookViewer.prototype.setActiveItem = function ( index ) {
+		this.items.forEach( function ( item, i ) {
+			var active = i === index;
+			item.classList.toggle( 'is-active', active );
+			if ( active ) {
+				item.setAttribute( 'aria-current', 'true' );
+			} else {
+				item.removeAttribute( 'aria-current' );
+			}
+		} );
+	};
+
+	/**
+	 * Tear down the current StPageFlip instance and page state.
+	 */
+	KdnaFlipbookViewer.prototype.teardown = function () {
+		if ( this.pageFlip && typeof this.pageFlip.destroy === 'function' ) {
+			try {
+				this.pageFlip.destroy();
+			} catch ( e ) {
+				// StPageFlip can throw if it never fully initialised, ignore.
+			}
+		}
+		this.pageFlip = null;
+		this.pdf = null;
+		this.numPages = 0;
+		this.pageEls = [];
+		this.rendered = {};
+		if ( this.book ) {
+			this.book.innerHTML = '';
+		}
 	};
 
 	/**
@@ -196,7 +317,14 @@
 			return Promise.resolve();
 		}
 
-		var promise = this.pdf.getPage( pageNum ).then( function ( page ) {
+		var pdf = this.pdf;
+
+		var promise = pdf.getPage( pageNum ).then( function ( page ) {
+			// Bail if the flipbook was swapped out while this was pending.
+			if ( self.pdf !== pdf ) {
+				return;
+			}
+
 			var dpr = window.devicePixelRatio || 1;
 			var targetWidth = pageEl.clientWidth || self.basePageWidth;
 			var baseViewport = page.getViewport( { scale: 1 } );
@@ -211,6 +339,9 @@
 			var context = canvas.getContext( '2d' );
 
 			return page.render( { canvasContext: context, viewport: viewport } ).promise.then( function () {
+				if ( self.pdf !== pdf ) {
+					return;
+				}
 				var spinner = pageEl.querySelector( '.kdna-flipbook__page-spinner' );
 				if ( spinner ) {
 					spinner.parentNode.removeChild( spinner );
@@ -260,13 +391,22 @@
 	};
 
 	/**
+	 * Hide the error message.
+	 */
+	KdnaFlipbookViewer.prototype.hideError = function () {
+		if ( this.message ) {
+			this.message.hidden = true;
+		}
+	};
+
+	/**
 	 * Initialise every viewer inside a scope that has not been started yet.
 	 *
 	 * @param {Document|HTMLElement} scope Optional scope to search within.
 	 */
 	function initAll( scope ) {
 		var context = scope || document;
-		var nodes = context.querySelectorAll( '.kdna-flipbook[data-pdf-url]' );
+		var nodes = context.querySelectorAll( '.kdna-flipbook' );
 
 		Array.prototype.forEach.call( nodes, function ( node ) {
 			if ( node.getAttribute( 'data-kdna-initialised' ) ) {

@@ -50,3 +50,4 @@ The front-end viewer is delivered as an Elementor widget, so Elementor is requir
 * Stage 0: Plugin scaffold, configurable custom post type, first-run setup and settings screen.
 * Stage 1: Flipbooks drag-to-reorder repeater and per-page access code, saved as post meta.
 * Stage 2: Front-end viewer rendering PDFs with bundled PDF.js and flipping them with bundled StPageFlip, with desktop spread, single cover and mobile single-page swipe. Conditional asset loading.
+* Stage 3: Front-end sidebar listing every flipbook with an icon and name, active highlight, and switching between flipbooks without a full page reload. Sidebar sits beside the viewer on desktop and above it on mobile.

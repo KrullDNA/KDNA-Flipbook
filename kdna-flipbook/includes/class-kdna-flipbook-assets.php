@@ -146,35 +146,142 @@ class Kdna_Flipbook_Assets {
 	}
 
 	/**
-	 * Build the viewer markup for a single PDF.
+	 * Default document icon shown when a flipbook has no custom icon.
 	 *
-	 * Shared so the Elementor widget can reuse it later. The container carries the
-	 * PDF URL as a data attribute, which the front-end JS reads on init.
-	 *
-	 * @param string $pdf_url PDF file URL.
-	 * @param array  $args    Optional. name for the flipbook, plus future options.
-	 * @return string HTML, or an empty string if there is no PDF URL.
+	 * @return string Inline SVG markup.
 	 */
-	public static function render_viewer( $pdf_url, $args = array() ) {
-		if ( empty( $pdf_url ) ) {
+	public static function default_icon_svg() {
+		return '<svg class="kdna-flipbook__item-svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" fill="currentColor" fill-opacity="0.12"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+	}
+
+	/**
+	 * Build a clean list of flipbooks from saved repeater rows.
+	 *
+	 * @param array $rows Flipbook rows from post meta.
+	 * @return array List of flipbooks, each with name, pdf_url and icon_url.
+	 */
+	public static function build_flipbooks_from_rows( $rows ) {
+		$flipbooks = array();
+
+		if ( empty( $rows ) || ! is_array( $rows ) ) {
+			return $flipbooks;
+		}
+
+		foreach ( $rows as $row ) {
+			if ( empty( $row['pdf_id'] ) ) {
+				continue;
+			}
+
+			$pdf_url = wp_get_attachment_url( (int) $row['pdf_id'] );
+			if ( empty( $pdf_url ) ) {
+				continue;
+			}
+
+			$icon_url = ! empty( $row['icon_id'] ) ? wp_get_attachment_image_url( (int) $row['icon_id'], 'thumbnail' ) : '';
+
+			$flipbooks[] = array(
+				'name'     => isset( $row['name'] ) ? $row['name'] : '',
+				'pdf_url'  => $pdf_url,
+				'icon_url' => $icon_url ? $icon_url : '',
+			);
+		}
+
+		return $flipbooks;
+	}
+
+	/**
+	 * Build the full viewer markup, including the sidebar of flipbooks.
+	 *
+	 * Shared so the Elementor widget can reuse it later. Each sidebar item carries
+	 * its PDF URL as a data attribute, which the front-end JS reads to switch the
+	 * viewer without a full page reload.
+	 *
+	 * @param array $flipbooks List of flipbooks, each with name, pdf_url, icon_url.
+	 * @param array $args      Optional. active index and show_sidebar flag.
+	 * @return string HTML, or an empty string if there are no flipbooks.
+	 */
+	public static function render( $flipbooks, $args = array() ) {
+		if ( empty( $flipbooks ) || ! is_array( $flipbooks ) ) {
 			return '';
 		}
 
 		$args = wp_parse_args(
 			$args,
 			array(
-				'name' => '',
+				'active'       => 0,
+				'show_sidebar' => true,
 			)
 		);
 
-		$html  = '<div class="kdna-flipbook" data-pdf-url="' . esc_url( $pdf_url ) . '"';
-		$html .= ' data-name="' . esc_attr( $args['name'] ) . '">';
+		$active = (int) $args['active'];
+		if ( $active < 0 || $active >= count( $flipbooks ) ) {
+			$active = 0;
+		}
+
+		$classes = array( 'kdna-flipbook' );
+		if ( $args['show_sidebar'] ) {
+			$classes[] = 'kdna-flipbook--has-sidebar';
+		}
+
+		$html  = '<div class="' . esc_attr( implode( ' ', $classes ) ) . '">';
+		$html .= '<div class="kdna-flipbook__layout">';
+
+		if ( $args['show_sidebar'] ) {
+			$html .= self::render_sidebar( $flipbooks, $active );
+		}
+
 		$html .= '<div class="kdna-flipbook__viewer">';
 		$html .= '<div class="kdna-flipbook__stage"><div class="kdna-flipbook__book"></div></div>';
 		$html .= '<div class="kdna-flipbook__overlay" aria-hidden="true"><span class="kdna-flipbook__spinner"></span></div>';
 		$html .= '<div class="kdna-flipbook__message" role="alert" hidden>' . esc_html__( 'Sorry, this document could not be loaded.', 'kdna-flipbook' ) . '</div>';
-		$html .= '</div>';
-		$html .= '</div>';
+		$html .= '</div>'; // .kdna-flipbook__viewer
+
+		$html .= '</div>'; // .kdna-flipbook__layout
+		$html .= '</div>'; // .kdna-flipbook
+
+		return $html;
+	}
+
+	/**
+	 * Build the sidebar list of flipbooks.
+	 *
+	 * @param array $flipbooks List of flipbooks.
+	 * @param int   $active    Active index.
+	 * @return string
+	 */
+	protected static function render_sidebar( $flipbooks, $active ) {
+		$html  = '<nav class="kdna-flipbook__sidebar" aria-label="' . esc_attr__( 'Flipbooks', 'kdna-flipbook' ) . '">';
+		$html .= '<ul class="kdna-flipbook__list">';
+
+		foreach ( $flipbooks as $index => $flipbook ) {
+			$is_active = ( (int) $index === (int) $active );
+			$name      = '' !== $flipbook['name'] ? $flipbook['name'] : __( 'Untitled flipbook', 'kdna-flipbook' );
+
+			$item_classes = 'kdna-flipbook__item' . ( $is_active ? ' is-active' : '' );
+
+			$icon = '<span class="kdna-flipbook__item-icon">';
+			if ( ! empty( $flipbook['icon_url'] ) ) {
+				$icon .= '<img class="kdna-flipbook__item-img" src="' . esc_url( $flipbook['icon_url'] ) . '" alt="" />';
+			} else {
+				$icon .= self::default_icon_svg();
+			}
+			$icon .= '</span>';
+
+			$html .= '<li class="kdna-flipbook__list-item">';
+			$html .= '<button type="button" class="' . esc_attr( $item_classes ) . '"';
+			$html .= ' data-index="' . esc_attr( $index ) . '"';
+			$html .= ' data-pdf-url="' . esc_url( $flipbook['pdf_url'] ) . '"';
+			$html .= ' data-name="' . esc_attr( $flipbook['name'] ) . '"';
+			$html .= $is_active ? ' aria-current="true"' : '';
+			$html .= '>';
+			$html .= $icon;
+			$html .= '<span class="kdna-flipbook__item-name">' . esc_html( $name ) . '</span>';
+			$html .= '</button>';
+			$html .= '</li>';
+		}
+
+		$html .= '</ul>';
+		$html .= '</nav>';
 
 		return $html;
 	}
@@ -190,21 +297,15 @@ class Kdna_Flipbook_Assets {
 			return $content;
 		}
 
-		$rows    = Kdna_Flipbook_Meta::get_rows( get_the_ID() );
-		$first   = $this->first_flipbook_with_pdf( $rows );
-		$pdf_url = $first ? wp_get_attachment_url( $first['pdf_id'] ) : '';
+		$rows      = Kdna_Flipbook_Meta::get_rows( get_the_ID() );
+		$flipbooks = self::build_flipbooks_from_rows( $rows );
 
-		if ( empty( $pdf_url ) ) {
+		if ( empty( $flipbooks ) ) {
 			return $content;
 		}
 
-		$notice  = '<p class="kdna-flipbook__temp-note">' . esc_html__( 'Temporary preview: showing the first flipbook. This is replaced by the Elementor widget.', 'kdna-flipbook' ) . '</p>';
-		$viewer  = self::render_viewer(
-			$pdf_url,
-			array(
-				'name' => isset( $first['name'] ) ? $first['name'] : '',
-			)
-		);
+		$notice = '<p class="kdna-flipbook__temp-note">' . esc_html__( 'Temporary preview: showing this entry\'s flipbooks. This is replaced by the Elementor widget.', 'kdna-flipbook' ) . '</p>';
+		$viewer = self::render( $flipbooks, array( 'active' => 0 ) );
 
 		return $content . $notice . $viewer;
 	}
