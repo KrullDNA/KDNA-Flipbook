@@ -103,8 +103,10 @@ class Kdna_Flipbook_Assets {
 			array(
 				'workerSrc' => KDNA_FLIPBOOK_URL . 'assets/vendor/pdfjs/pdf.worker.min.js',
 				'i18n'      => array(
-					'loading' => __( 'Loading', 'kdna-flipbook' ),
-					'error'   => __( 'Sorry, this document could not be loaded.', 'kdna-flipbook' ),
+					'loading'        => __( 'Loading', 'kdna-flipbook' ),
+					'error'          => __( 'Sorry, this document could not be loaded.', 'kdna-flipbook' ),
+					'fullscreen'     => __( 'Fullscreen', 'kdna-flipbook' ),
+					'exitFullscreen' => __( 'Exit fullscreen', 'kdna-flipbook' ),
 				),
 			)
 		);
@@ -232,6 +234,8 @@ class Kdna_Flipbook_Assets {
 
 		$html .= '<div class="kdna-flipbook__viewer">';
 		$html .= '<div class="kdna-flipbook__stage"><div class="kdna-flipbook__book"></div></div>';
+		$html .= '<div class="kdna-flipbook__zoom" hidden><canvas class="kdna-flipbook__zoom-canvas"></canvas></div>';
+		$html .= self::render_toolbar();
 		$html .= '<div class="kdna-flipbook__overlay" aria-hidden="true"><span class="kdna-flipbook__spinner"></span></div>';
 		$html .= '<div class="kdna-flipbook__message" role="alert" hidden>' . esc_html__( 'Sorry, this document could not be loaded.', 'kdna-flipbook' ) . '</div>';
 		$html .= '</div>'; // .kdna-flipbook__viewer
@@ -284,6 +288,71 @@ class Kdna_Flipbook_Assets {
 		$html .= '</nav>';
 
 		return $html;
+	}
+
+	/**
+	 * Build the viewer toolbar.
+	 *
+	 * This stage adds zoom and fullscreen. The remaining controls arrive in a
+	 * later stage, and their visibility becomes widget toggles then.
+	 *
+	 * @return string
+	 */
+	protected static function render_toolbar() {
+		$html  = '<div class="kdna-flipbook__toolbar" role="toolbar" aria-label="' . esc_attr__( 'Viewer controls', 'kdna-flipbook' ) . '">';
+
+		$html .= '<div class="kdna-flipbook__toolbar-group kdna-flipbook__toolbar-group--zoom">';
+		$html .= self::toolbar_button( 'zoom-out', __( 'Zoom out', 'kdna-flipbook' ) );
+		$html .= '<span class="kdna-flipbook__zoom-level" aria-live="polite">100%</span>';
+		$html .= self::toolbar_button( 'zoom-in', __( 'Zoom in', 'kdna-flipbook' ) );
+		$html .= '</div>';
+
+		$html .= '<div class="kdna-flipbook__toolbar-group kdna-flipbook__toolbar-group--view">';
+		$html .= self::toolbar_button( 'fullscreen', __( 'Fullscreen', 'kdna-flipbook' ) );
+		$html .= '</div>';
+
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Build a single toolbar button.
+	 *
+	 * @param string $action Button action, used as the icon name and data hook.
+	 * @param string $label  Accessible label.
+	 * @return string
+	 */
+	protected static function toolbar_button( $action, $label ) {
+		$html  = '<button type="button" class="kdna-flipbook__btn kdna-flipbook__btn--' . esc_attr( $action ) . '"';
+		$html .= ' data-action="' . esc_attr( $action ) . '"';
+		$html .= ' title="' . esc_attr( $label ) . '" aria-label="' . esc_attr( $label ) . '">';
+		$html .= self::icon( $action );
+		$html .= '</button>';
+
+		return $html;
+	}
+
+	/**
+	 * Return inline SVG markup for a named icon.
+	 *
+	 * @param string $name Icon name.
+	 * @return string
+	 */
+	public static function icon( $name ) {
+		$open  = '<svg class="kdna-flipbook__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">';
+		$close = '</svg>';
+
+		$paths = array(
+			'zoom-in'      => '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>',
+			'zoom-out'     => '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>',
+			'fullscreen'   => '<path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/><path d="M20 15v4a1 1 0 0 1-1 1h-4"/>',
+			'fullscreen-exit' => '<path d="M9 4v4a1 1 0 0 1-1 1H4"/><path d="M15 4v4a1 1 0 0 0 1 1h4"/><path d="M9 20v-4a1 1 0 0 0-1-1H4"/><path d="M15 20v-4a1 1 0 0 1 1-1h4"/>',
+		);
+
+		$path = isset( $paths[ $name ] ) ? $paths[ $name ] : '';
+
+		return $open . $path . $close;
 	}
 
 	/**

@@ -31,11 +31,16 @@
 	 */
 	function KdnaFlipbookViewer( root ) {
 		this.root = root;
+		this.viewer = root.querySelector( '.kdna-flipbook__viewer' );
 		this.stage = root.querySelector( '.kdna-flipbook__stage' );
 		this.book = root.querySelector( '.kdna-flipbook__book' );
 		this.overlay = root.querySelector( '.kdna-flipbook__overlay' );
 		this.message = root.querySelector( '.kdna-flipbook__message' );
 		this.items = Array.prototype.slice.call( root.querySelectorAll( '.kdna-flipbook__item' ) );
+		this.toolbar = root.querySelector( '.kdna-flipbook__toolbar' );
+		this.zoomLayer = root.querySelector( '.kdna-flipbook__zoom' );
+		this.zoomCanvas = root.querySelector( '.kdna-flipbook__zoom-canvas' );
+		this.zoomLevelEl = root.querySelector( '.kdna-flipbook__zoom-level' );
 
 		this.pdf = null;
 		this.numPages = 0;
@@ -46,6 +51,21 @@
 		this.basePageWidth = 480;
 		this.activeIndex = -1;
 		this.loadToken = 0;
+
+		// Zoom and pan state.
+		this.zoom = 1;
+		this.minZoom = 1;
+		this.maxZoom = 5;
+		this.zoomStep = 0.5;
+		this.zoomActive = false;
+		this.pan = { x: 0, y: 0 };
+		this.liveScale = 1;
+		this.zoomPageNum = 1;
+		this.zoomRenderToken = 0;
+		this.zoomCanvasCss = null;
+		this.drag = null;
+		this.touch = null;
+		this.pinchTarget = null;
 	}
 
 	/**
@@ -66,6 +86,10 @@
 				self.loadFlipbook( index );
 			} );
 		} );
+
+		this.setupControls();
+		this.setupZoom();
+		this.setupFullscreen();
 
 		this.loadFlipbook( this.startIndex() );
 	};
@@ -122,6 +146,7 @@
 		var token = ++this.loadToken;
 		var self = this;
 
+		this.resetZoom();
 		this.hideError();
 		this.showOverlay( true );
 		this.teardown();
@@ -397,6 +422,522 @@
 		if ( this.message ) {
 			this.message.hidden = true;
 		}
+	};
+
+	/* -------------------------------------------------------------------------
+	 * Zoom, pan and fullscreen.
+	 * ---------------------------------------------------------------------- */
+
+	/**
+	 * Keep a number within a range.
+	 *
+	 * @param {number} value Value.
+	 * @param {number} min   Minimum.
+	 * @param {number} max   Maximum.
+	 * @return {number}
+	 */
+	function clamp( value, min, max ) {
+		return Math.min( max, Math.max( min, value ) );
+	}
+
+	/**
+	 * Bind the toolbar buttons.
+	 */
+	KdnaFlipbookViewer.prototype.setupControls = function () {
+		if ( ! this.toolbar ) {
+			return;
+		}
+
+		var self = this;
+		this.toolbar.addEventListener( 'click', function ( event ) {
+			var button = event.target.closest( 'button[data-action]' );
+			if ( ! button ) {
+				return;
+			}
+			var action = button.getAttribute( 'data-action' );
+
+			if ( 'zoom-in' === action ) {
+				self.zoomBy( self.zoomStep );
+			} else if ( 'zoom-out' === action ) {
+				self.zoomBy( -self.zoomStep );
+			} else if ( 'fullscreen' === action ) {
+				self.toggleFullscreen();
+			}
+		} );
+
+		this.updateZoomUI();
+	};
+
+	/**
+	 * One-based current page number, clamped to the document.
+	 *
+	 * @return {number}
+	 */
+	KdnaFlipbookViewer.prototype.currentPageNum = function () {
+		return clamp( this.currentIndex() + 1, 1, this.numPages || 1 );
+	};
+
+	/**
+	 * Change the zoom by a delta, centred on the viewer.
+	 *
+	 * @param {number} delta Zoom delta.
+	 */
+	KdnaFlipbookViewer.prototype.zoomBy = function ( delta ) {
+		this.setZoom( this.zoom + delta, { x: 0, y: 0 } );
+	};
+
+	/**
+	 * Set the zoom level, keeping a focal point steady.
+	 *
+	 * @param {number} newZoom Target zoom.
+	 * @param {Object} focal   Point relative to the viewer centre, in pixels.
+	 */
+	KdnaFlipbookViewer.prototype.setZoom = function ( newZoom, focal ) {
+		newZoom = clamp( newZoom, this.minZoom, this.maxZoom );
+		focal = focal || { x: 0, y: 0 };
+
+		if ( newZoom <= this.minZoom ) {
+			this.resetZoom();
+			return;
+		}
+
+		var prev = this.zoom;
+		if ( ! this.zoomActive ) {
+			this.activateZoom();
+			prev = 1;
+		}
+
+		var f = newZoom / prev;
+		this.pan.x = focal.x * ( 1 - f ) + f * this.pan.x;
+		this.pan.y = focal.y * ( 1 - f ) + f * this.pan.y;
+		this.zoom = newZoom;
+
+		this.renderZoomPage();
+		this.updateZoomUI();
+	};
+
+	/**
+	 * Enter zoom mode over the current page.
+	 */
+	KdnaFlipbookViewer.prototype.activateZoom = function () {
+		this.zoomActive = true;
+		this.zoomPageNum = this.currentPageNum();
+		this.pan = { x: 0, y: 0 };
+		this.liveScale = 1;
+		if ( this.zoomLayer ) {
+			this.zoomLayer.hidden = false;
+		}
+		this.root.classList.add( 'is-zoomed' );
+	};
+
+	/**
+	 * Leave zoom mode and return to the flipbook.
+	 */
+	KdnaFlipbookViewer.prototype.resetZoom = function () {
+		this.zoomActive = false;
+		this.zoom = 1;
+		this.pan = { x: 0, y: 0 };
+		this.liveScale = 1;
+		this.pinchTarget = null;
+		if ( this.zoomLayer ) {
+			this.zoomLayer.hidden = true;
+		}
+		this.root.classList.remove( 'is-zoomed' );
+		this.updateZoomUI();
+	};
+
+	/**
+	 * Render the zoomed page crisply at the current zoom.
+	 */
+	KdnaFlipbookViewer.prototype.renderZoomPage = function () {
+		if ( ! this.pdf || ! this.zoomActive || ! this.zoomCanvas ) {
+			return;
+		}
+
+		var self = this;
+		var token = ++this.zoomRenderToken;
+		var pageNum = this.zoomPageNum;
+		var viewerWidth = this.viewer.clientWidth || 960;
+		var maxBackingPixels = 4200;
+
+		this.pdf.getPage( pageNum ).then( function ( page ) {
+			if ( token !== self.zoomRenderToken ) {
+				return;
+			}
+
+			var dpr = window.devicePixelRatio || 1;
+			var base = page.getViewport( { scale: 1 } );
+			var cssWidth = viewerWidth * self.zoom;
+			var backingScale = ( cssWidth / base.width ) * dpr;
+			var viewport = page.getViewport( { scale: backingScale } );
+
+			// Cap the backing size so very deep zooms do not exhaust memory.
+			if ( viewport.width > maxBackingPixels ) {
+				backingScale = backingScale * ( maxBackingPixels / viewport.width );
+				viewport = page.getViewport( { scale: backingScale } );
+			}
+
+			var canvas = self.zoomCanvas;
+			canvas.width = Math.floor( viewport.width );
+			canvas.height = Math.floor( viewport.height );
+
+			var cssHeight = cssWidth * ( base.height / base.width );
+			canvas.style.width = cssWidth + 'px';
+			canvas.style.height = cssHeight + 'px';
+			self.zoomCanvasCss = { w: cssWidth, h: cssHeight };
+
+			var context = canvas.getContext( '2d' );
+
+			return page.render( { canvasContext: context, viewport: viewport } ).promise.then( function () {
+				if ( token !== self.zoomRenderToken ) {
+					return;
+				}
+				self.liveScale = 1;
+				self.applyTransform();
+			} );
+		} ).catch( function ( error ) {
+			if ( window.console && window.console.error ) {
+				window.console.error( 'KDNA Flipbook zoom:', error );
+			}
+		} );
+	};
+
+	/**
+	 * Apply the current pan and live scale to the zoom canvas.
+	 */
+	KdnaFlipbookViewer.prototype.applyTransform = function () {
+		this.clampPan();
+		var transform = 'translate(-50%, -50%) translate(' + this.pan.x + 'px, ' + this.pan.y + 'px)';
+		if ( 1 !== this.liveScale ) {
+			transform += ' scale(' + this.liveScale + ')';
+		}
+		this.zoomCanvas.style.transform = transform;
+	};
+
+	/**
+	 * Keep the pan within the bounds of the viewer so the page cannot be lost.
+	 */
+	KdnaFlipbookViewer.prototype.clampPan = function () {
+		if ( ! this.zoomCanvasCss ) {
+			return;
+		}
+		var scale = this.liveScale || 1;
+		var canvasWidth = this.zoomCanvasCss.w * scale;
+		var canvasHeight = this.zoomCanvasCss.h * scale;
+		var viewerWidth = this.viewer.clientWidth;
+		var viewerHeight = this.viewer.clientHeight;
+
+		var maxX = Math.max( 0, ( canvasWidth - viewerWidth ) / 2 );
+		var maxY = Math.max( 0, ( canvasHeight - viewerHeight ) / 2 );
+
+		this.pan.x = clamp( this.pan.x, -maxX, maxX );
+		this.pan.y = clamp( this.pan.y, -maxY, maxY );
+	};
+
+	/**
+	 * Update the zoom readout and button states.
+	 */
+	KdnaFlipbookViewer.prototype.updateZoomUI = function () {
+		if ( this.zoomLevelEl ) {
+			this.zoomLevelEl.textContent = Math.round( this.zoom * 100 ) + '%';
+		}
+		var out = this.root.querySelector( '.kdna-flipbook__btn--zoom-out' );
+		var into = this.root.querySelector( '.kdna-flipbook__btn--zoom-in' );
+		if ( out ) {
+			out.disabled = this.zoom <= this.minZoom;
+		}
+		if ( into ) {
+			into.disabled = this.zoom >= this.maxZoom;
+		}
+	};
+
+	/**
+	 * A point relative to the viewer centre, from a client coordinate.
+	 *
+	 * @param {number} clientX Client X.
+	 * @param {number} clientY Client Y.
+	 * @return {Object}
+	 */
+	KdnaFlipbookViewer.prototype.focalFromPoint = function ( clientX, clientY ) {
+		var rect = this.viewer.getBoundingClientRect();
+		return {
+			x: clientX - rect.left - rect.width / 2,
+			y: clientY - rect.top - rect.height / 2
+		};
+	};
+
+	/**
+	 * Distance between two touches.
+	 *
+	 * @param {TouchList} touches Touches.
+	 * @return {number}
+	 */
+	function touchDistance( touches ) {
+		var dx = touches[ 0 ].clientX - touches[ 1 ].clientX;
+		var dy = touches[ 0 ].clientY - touches[ 1 ].clientY;
+		return Math.sqrt( dx * dx + dy * dy );
+	}
+
+	/**
+	 * Midpoint of two touches.
+	 *
+	 * @param {TouchList} touches Touches.
+	 * @return {Object}
+	 */
+	function touchMidpoint( touches ) {
+		return {
+			x: ( touches[ 0 ].clientX + touches[ 1 ].clientX ) / 2,
+			y: ( touches[ 0 ].clientY + touches[ 1 ].clientY ) / 2
+		};
+	}
+
+	/**
+	 * Bind wheel zoom, drag pan and pinch zoom.
+	 */
+	KdnaFlipbookViewer.prototype.setupZoom = function () {
+		var self = this;
+
+		if ( this.viewer ) {
+			this.viewer.addEventListener( 'wheel', function ( event ) {
+				var zoomingIn = event.deltaY < 0;
+
+				// At fit, let the page scroll normally when scrolling down.
+				if ( ! self.zoomActive && ! zoomingIn ) {
+					return;
+				}
+
+				event.preventDefault();
+				var focal = self.focalFromPoint( event.clientX, event.clientY );
+				self.setZoom( self.zoom + ( zoomingIn ? self.zoomStep : -self.zoomStep ), focal );
+			}, { passive: false } );
+		}
+
+		if ( ! this.zoomLayer ) {
+			return;
+		}
+
+		// Desktop drag to pan.
+		this.zoomLayer.addEventListener( 'mousedown', function ( event ) {
+			if ( ! self.zoomActive ) {
+				return;
+			}
+			event.preventDefault();
+			self.drag = { x: event.clientX, y: event.clientY, panX: self.pan.x, panY: self.pan.y };
+			self.zoomLayer.classList.add( 'is-grabbing' );
+		} );
+
+		window.addEventListener( 'mousemove', function ( event ) {
+			if ( ! self.drag ) {
+				return;
+			}
+			self.pan.x = self.drag.panX + ( event.clientX - self.drag.x );
+			self.pan.y = self.drag.panY + ( event.clientY - self.drag.y );
+			self.applyTransform();
+		} );
+
+		window.addEventListener( 'mouseup', function () {
+			if ( self.drag ) {
+				self.drag = null;
+				self.zoomLayer.classList.remove( 'is-grabbing' );
+			}
+		} );
+
+		// Touch: one finger pans, two fingers pinch to zoom.
+		this.zoomLayer.addEventListener( 'touchstart', function ( event ) {
+			if ( ! self.zoomActive ) {
+				return;
+			}
+			self.beginTouch( event );
+		}, { passive: false } );
+
+		this.zoomLayer.addEventListener( 'touchmove', function ( event ) {
+			if ( ! self.zoomActive || ! self.touch ) {
+				return;
+			}
+			self.moveTouch( event );
+		}, { passive: false } );
+
+		this.zoomLayer.addEventListener( 'touchend', function ( event ) {
+			self.endTouch( event );
+		} );
+
+		this.zoomLayer.addEventListener( 'touchcancel', function ( event ) {
+			self.endTouch( event );
+		} );
+	};
+
+	/**
+	 * Start a touch gesture.
+	 *
+	 * @param {TouchEvent} event Touch event.
+	 */
+	KdnaFlipbookViewer.prototype.beginTouch = function ( event ) {
+		if ( 2 === event.touches.length ) {
+			var mid = touchMidpoint( event.touches );
+			this.touch = {
+				mode: 'pinch',
+				startDist: touchDistance( event.touches ),
+				startZoom: this.zoom,
+				focal: this.focalFromPoint( mid.x, mid.y ),
+				panX: this.pan.x,
+				panY: this.pan.y
+			};
+		} else if ( 1 === event.touches.length ) {
+			this.touch = {
+				mode: 'pan',
+				x: event.touches[ 0 ].clientX,
+				y: event.touches[ 0 ].clientY,
+				panX: this.pan.x,
+				panY: this.pan.y
+			};
+		}
+	};
+
+	/**
+	 * Update a touch gesture.
+	 *
+	 * @param {TouchEvent} event Touch event.
+	 */
+	KdnaFlipbookViewer.prototype.moveTouch = function ( event ) {
+		if ( 'pan' === this.touch.mode && 1 === event.touches.length ) {
+			event.preventDefault();
+			this.pan.x = this.touch.panX + ( event.touches[ 0 ].clientX - this.touch.x );
+			this.pan.y = this.touch.panY + ( event.touches[ 0 ].clientY - this.touch.y );
+			this.applyTransform();
+		} else if ( 'pinch' === this.touch.mode && 2 === event.touches.length ) {
+			event.preventDefault();
+			var ratio = touchDistance( event.touches ) / this.touch.startDist;
+			var target = clamp( this.touch.startZoom * ratio, this.minZoom, this.maxZoom );
+			this.pinchTarget = target;
+
+			// Scale the already-rendered canvas live, then re-render crisp on end.
+			this.liveScale = target / this.zoom;
+			var f = target / this.touch.startZoom;
+			this.pan.x = this.touch.focal.x * ( 1 - f ) + f * this.touch.panX;
+			this.pan.y = this.touch.focal.y * ( 1 - f ) + f * this.touch.panY;
+			this.applyTransform();
+		}
+	};
+
+	/**
+	 * Finish a touch gesture.
+	 *
+	 * @param {TouchEvent} event Touch event.
+	 */
+	KdnaFlipbookViewer.prototype.endTouch = function ( event ) {
+		if ( ! this.touch ) {
+			return;
+		}
+
+		if ( 'pinch' === this.touch.mode && event.touches.length < 2 ) {
+			var finalZoom = this.pinchTarget || this.zoom;
+			this.pinchTarget = null;
+			this.touch = null;
+
+			if ( finalZoom <= this.minZoom + 0.01 ) {
+				this.resetZoom();
+			} else {
+				this.zoom = finalZoom;
+				this.liveScale = 1;
+				this.renderZoomPage();
+				this.updateZoomUI();
+			}
+
+			// If one finger remains, carry on with a pan.
+			if ( 1 === event.touches.length && this.zoomActive ) {
+				this.touch = {
+					mode: 'pan',
+					x: event.touches[ 0 ].clientX,
+					y: event.touches[ 0 ].clientY,
+					panX: this.pan.x,
+					panY: this.pan.y
+				};
+			}
+			return;
+		}
+
+		if ( 0 === event.touches.length ) {
+			this.touch = null;
+		}
+	};
+
+	/**
+	 * Set up the fullscreen control and state changes.
+	 */
+	KdnaFlipbookViewer.prototype.setupFullscreen = function () {
+		var self = this;
+
+		var handler = function () {
+			self.onFullscreenChange();
+		};
+
+		document.addEventListener( 'fullscreenchange', handler );
+		document.addEventListener( 'webkitfullscreenchange', handler );
+	};
+
+	/**
+	 * The element used for fullscreen.
+	 *
+	 * @return {HTMLElement}
+	 */
+	KdnaFlipbookViewer.prototype.fullscreenTarget = function () {
+		return this.viewer || this.root;
+	};
+
+	/**
+	 * Is this viewer currently fullscreen.
+	 *
+	 * @return {boolean}
+	 */
+	KdnaFlipbookViewer.prototype.isFullscreen = function () {
+		var current = document.fullscreenElement || document.webkitFullscreenElement;
+		return current === this.fullscreenTarget();
+	};
+
+	/**
+	 * Toggle fullscreen for this viewer.
+	 */
+	KdnaFlipbookViewer.prototype.toggleFullscreen = function () {
+		var target = this.fullscreenTarget();
+
+		if ( ! this.isFullscreen() ) {
+			var request = target.requestFullscreen || target.webkitRequestFullscreen;
+			if ( request ) {
+				request.call( target );
+			}
+		} else {
+			var exit = document.exitFullscreen || document.webkitExitFullscreen;
+			if ( exit ) {
+				exit.call( document );
+			}
+		}
+	};
+
+	/**
+	 * React to entering or leaving fullscreen.
+	 */
+	KdnaFlipbookViewer.prototype.onFullscreenChange = function () {
+		var full = this.isFullscreen();
+		this.root.classList.toggle( 'is-fullscreen', full );
+
+		var button = this.root.querySelector( '.kdna-flipbook__btn--fullscreen' );
+		if ( button ) {
+			button.classList.toggle( 'is-active', full );
+			var label = full ? ( i18n.exitFullscreen || 'Exit fullscreen' ) : ( i18n.fullscreen || 'Fullscreen' );
+			button.setAttribute( 'aria-label', label );
+			button.setAttribute( 'title', label );
+		}
+
+		// The viewer has resized, so re-render for the new size after it settles.
+		var self = this;
+		window.setTimeout( function () {
+			if ( self.zoomActive ) {
+				self.renderZoomPage();
+			} else if ( self.pdf ) {
+				self.rendered = {};
+				self.renderAround( self.currentIndex() );
+			}
+		}, 250 );
 	};
 
 	/**

@@ -24,6 +24,13 @@
 	--kdna-flipbook-icon-color: #646970;
 	--kdna-flipbook-icon-size: 24px;
 
+	--kdna-flipbook-toolbar-bg: rgba( 32, 34, 38, 0.86 );
+	--kdna-flipbook-toolbar-color: #ffffff;
+	--kdna-flipbook-toolbar-hover-bg: rgba( 255, 255, 255, 0.16 );
+	--kdna-flipbook-toolbar-radius: 10px;
+	--kdna-flipbook-btn-size: 40px;
+	--kdna-flipbook-fullscreen-bg: #1a1a1a;
+
 	box-sizing: border-box;
 	width: 100%;
 	background: var( --kdna-flipbook-bg );
@@ -206,6 +213,129 @@
 	margin: calc( var( --kdna-flipbook-spinner-size ) / -2 ) 0 0 calc( var( --kdna-flipbook-spinner-size ) / -2 );
 }
 
+/* Zoom layer: a high-resolution render of the current page, pannable. */
+.kdna-flipbook__zoom {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	z-index: 10;
+	background: rgba( 20, 20, 22, 0.92 );
+	cursor: grab;
+	touch-action: none;
+}
+
+.kdna-flipbook__zoom.is-grabbing {
+	cursor: grabbing;
+}
+
+.kdna-flipbook__zoom[hidden] {
+	display: none;
+}
+
+.kdna-flipbook__zoom-canvas {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate( -50%, -50% );
+	transform-origin: center center;
+	will-change: transform;
+	max-width: none;
+}
+
+/* Toolbar. */
+.kdna-flipbook__toolbar {
+	position: absolute;
+	left: 50%;
+	bottom: 16px;
+	transform: translateX( -50% );
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px;
+	background: var( --kdna-flipbook-toolbar-bg );
+	color: var( --kdna-flipbook-toolbar-color );
+	border-radius: var( --kdna-flipbook-toolbar-radius );
+	box-shadow: 0 4px 16px rgba( 0, 0, 0, 0.25 );
+	z-index: 20;
+	max-width: calc( 100% - 24px );
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.kdna-flipbook__toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.kdna-flipbook__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var( --kdna-flipbook-btn-size );
+	height: var( --kdna-flipbook-btn-size );
+	padding: 0;
+	background: transparent;
+	color: inherit;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.kdna-flipbook__btn:hover,
+.kdna-flipbook__btn:focus-visible {
+	background: var( --kdna-flipbook-toolbar-hover-bg );
+	outline: none;
+}
+
+.kdna-flipbook__btn:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.kdna-flipbook__btn.is-active {
+	background: var( --kdna-flipbook-toolbar-hover-bg );
+}
+
+.kdna-flipbook__icon {
+	width: 20px;
+	height: 20px;
+	display: block;
+}
+
+.kdna-flipbook__zoom-level {
+	min-width: 46px;
+	text-align: center;
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+	user-select: none;
+}
+
+/* Fullscreen: the viewer becomes the fullscreen element and fills the screen. */
+.kdna-flipbook__viewer:fullscreen {
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var( --kdna-flipbook-fullscreen-bg );
+}
+
+.kdna-flipbook__viewer:-webkit-full-screen {
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var( --kdna-flipbook-fullscreen-bg );
+}
+
+.kdna-flipbook__viewer:fullscreen .kdna-flipbook__stage,
+.kdna-flipbook__viewer:-webkit-full-screen .kdna-flipbook__stage {
+	max-width: min( 96vw, 1600px );
+}
+
 /* Full-viewer loading overlay for the initial load. */
 .kdna-flipbook__overlay {
 	position: absolute;
@@ -214,13 +344,24 @@
 	align-items: center;
 	justify-content: center;
 	background: rgba( 255, 255, 255, 0.6 );
-	z-index: 5;
+	z-index: 30;
 }
 
 .kdna-flipbook__message {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	padding: 24px;
 	text-align: center;
 	color: #b32d2e;
+	background: rgba( 255, 255, 255, 0.92 );
+	z-index: 40;
+}
+
+.kdna-flipbook__message[hidden] {
+	display: none;
 }
 
 .kdna-flipbook__temp-note {
