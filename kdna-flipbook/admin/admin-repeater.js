@@ -167,13 +167,83 @@
 		}
 
 		/**
-		 * Open the media uploader to choose an icon for a row.
+		 * Show or hide the built-in icon picker for a row.
+		 *
+		 * @param {HTMLElement} row    The row element.
+		 * @param {HTMLElement} toggle The toggle button.
+		 */
+		function toggleIconPicker( row, toggle ) {
+			var picker = row.querySelector( '.kdna-flipbook-iconpicker' );
+			if ( ! picker ) {
+				return;
+			}
+			var open = picker.hidden;
+			picker.hidden = ! open;
+			toggle.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+		}
+
+		/**
+		 * Reflect a chosen icon in the row: preview, buttons and picker state.
+		 *
+		 * @param {HTMLElement} row      The row element.
+		 * @param {string}      previewHtml Inner HTML for the preview.
+		 */
+		function markIconChosen( row, previewHtml ) {
+			var preview = row.querySelector( '.kdna-flipbook-icon-preview' );
+			var toggle = row.querySelector( '.kdna-flipbook-toggle-iconpicker' );
+			var removeButton = row.querySelector( '.kdna-flipbook-remove-icon' );
+			var picker = row.querySelector( '.kdna-flipbook-iconpicker' );
+
+			if ( preview ) {
+				preview.innerHTML = previewHtml;
+				preview.style.display = '';
+			}
+			if ( toggle ) {
+				toggle.textContent = t( 'changeIcon', 'Change icon' );
+				toggle.setAttribute( 'aria-expanded', 'false' );
+			}
+			if ( removeButton ) {
+				removeButton.style.display = '';
+			}
+			if ( picker ) {
+				picker.hidden = true;
+			}
+		}
+
+		/**
+		 * Choose one of the built-in icons.
+		 *
+		 * @param {HTMLElement} row    The row element.
+		 * @param {HTMLElement} button The clicked icon button.
+		 */
+		function pickBuiltinIcon( row, button ) {
+			var idInput = row.querySelector( '.kdna-flipbook-input-icon-id' );
+			var keyInput = row.querySelector( '.kdna-flipbook-input-icon-key' );
+			var key = button.getAttribute( 'data-icon' );
+
+			if ( idInput ) {
+				idInput.value = '';
+			}
+			if ( keyInput ) {
+				keyInput.value = key;
+			}
+
+			// Highlight the selected icon within this row.
+			row.querySelectorAll( '.kdna-flipbook-iconpick' ).forEach( function ( item ) {
+				item.classList.toggle( 'is-selected', item === button );
+			} );
+
+			markIconChosen( row, button.innerHTML );
+		}
+
+		/**
+		 * Open the media uploader to choose an SVG or image icon for a row.
 		 *
 		 * @param {HTMLElement} row The row element.
 		 */
 		function chooseIcon( row ) {
 			var frame = window.wp.media( {
-				title: t( 'selectIcon', 'Select an icon' ),
+				title: t( 'selectIcon', 'Select or upload an icon' ),
 				button: { text: t( 'useIcon', 'Use this icon' ) },
 				library: { type: 'image' },
 				multiple: false
@@ -182,9 +252,7 @@
 			frame.on( 'select', function () {
 				var attachment = frame.state().get( 'selection' ).first().toJSON();
 				var idInput = row.querySelector( '.kdna-flipbook-input-icon-id' );
-				var preview = row.querySelector( '.kdna-flipbook-icon-preview' );
-				var chooseButton = row.querySelector( '.kdna-flipbook-choose-icon' );
-				var removeButton = row.querySelector( '.kdna-flipbook-remove-icon' );
+				var keyInput = row.querySelector( '.kdna-flipbook-input-icon-key' );
 				var url = attachment.url;
 
 				if ( attachment.sizes && attachment.sizes.thumbnail ) {
@@ -194,19 +262,16 @@
 				if ( idInput ) {
 					idInput.value = attachment.id;
 				}
-				if ( preview ) {
-					var img = preview.querySelector( 'img' );
-					if ( img ) {
-						img.src = url;
-					}
-					preview.style.display = '';
+				if ( keyInput ) {
+					keyInput.value = '';
 				}
-				if ( chooseButton ) {
-					chooseButton.textContent = t( 'changeIcon', 'Change icon' );
-				}
-				if ( removeButton ) {
-					removeButton.style.display = '';
-				}
+
+				// Uploaded icon wins, so clear any built-in selection.
+				row.querySelectorAll( '.kdna-flipbook-iconpick.is-selected' ).forEach( function ( item ) {
+					item.classList.remove( 'is-selected' );
+				} );
+
+				markIconChosen( row, '<img src="' + url + '" alt="" />' );
 			} );
 
 			frame.open();
@@ -219,22 +284,30 @@
 		 */
 		function removeIcon( row ) {
 			var idInput = row.querySelector( '.kdna-flipbook-input-icon-id' );
+			var keyInput = row.querySelector( '.kdna-flipbook-input-icon-key' );
 			var preview = row.querySelector( '.kdna-flipbook-icon-preview' );
-			var chooseButton = row.querySelector( '.kdna-flipbook-choose-icon' );
+			var toggle = row.querySelector( '.kdna-flipbook-toggle-iconpicker' );
 			var removeButton = row.querySelector( '.kdna-flipbook-remove-icon' );
 
 			if ( idInput ) {
 				idInput.value = '';
 			}
+			if ( keyInput ) {
+				keyInput.value = '';
+			}
 			if ( preview ) {
+				preview.innerHTML = '';
 				preview.style.display = 'none';
 			}
-			if ( chooseButton ) {
-				chooseButton.textContent = t( 'chooseIcon', 'Choose icon' );
+			if ( toggle ) {
+				toggle.textContent = t( 'chooseIcon', 'Choose icon' );
 			}
 			if ( removeButton ) {
 				removeButton.style.display = 'none';
 			}
+			row.querySelectorAll( '.kdna-flipbook-iconpick.is-selected' ).forEach( function ( item ) {
+				item.classList.remove( 'is-selected' );
+			} );
 		}
 
 		// Add row.
@@ -262,6 +335,12 @@
 			} else if ( target.classList.contains( 'kdna-flipbook-remove-pdf' ) ) {
 				event.preventDefault();
 				removePdf( row );
+			} else if ( target.classList.contains( 'kdna-flipbook-toggle-iconpicker' ) ) {
+				event.preventDefault();
+				toggleIconPicker( row, target );
+			} else if ( target.classList.contains( 'kdna-flipbook-iconpick' ) ) {
+				event.preventDefault();
+				pickBuiltinIcon( row, target );
 			} else if ( target.classList.contains( 'kdna-flipbook-choose-icon' ) ) {
 				event.preventDefault();
 				chooseIcon( row );

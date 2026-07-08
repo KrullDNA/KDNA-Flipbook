@@ -4,7 +4,7 @@ Tags: pdf, flipbook, elementor, viewer, pdf.js
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,10 @@ No. PDF.js and StPageFlip are bundled inside the plugin, and PDFs are served fro
 The front-end viewer is delivered as an Elementor widget, so Elementor is required to place it on your client template.
 
 == Changelog ==
+
+= 1.0.3 =
+* Flipbook icons can now be chosen from a set of built-in icons or uploaded, including SVG.
+* Added safe SVG uploads for users who can edit entries, with each SVG sanitised on upload to strip scripts and other active content.
 
 = 1.0.2 =
 * Fixed a fatal error when Elementor loaded the widget: the has_widget_inner_wrapper() method is now declared public to match Elementor.

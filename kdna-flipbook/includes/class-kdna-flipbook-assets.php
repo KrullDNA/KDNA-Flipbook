@@ -162,16 +162,79 @@ class Kdna_Flipbook_Assets {
 				continue;
 			}
 
-			$icon_url = ! empty( $row['icon_id'] ) ? wp_get_attachment_image_url( (int) $row['icon_id'], 'thumbnail' ) : '';
+			$icon_url = '';
+			if ( ! empty( $row['icon_id'] ) ) {
+				$icon_id  = (int) $row['icon_id'];
+				$icon_url = wp_get_attachment_image_url( $icon_id, 'thumbnail' );
+				// SVGs and other files with no thumbnail size fall back to the full file.
+				if ( ! $icon_url ) {
+					$icon_url = wp_get_attachment_url( $icon_id );
+				}
+			}
+
+			$icon_key = ! empty( $row['icon_key'] ) ? sanitize_key( $row['icon_key'] ) : '';
+			if ( $icon_key && ! self::is_builtin_icon( $icon_key ) ) {
+				$icon_key = '';
+			}
 
 			$flipbooks[] = array(
 				'name'     => isset( $row['name'] ) ? $row['name'] : '',
 				'pdf_url'  => $pdf_url,
 				'icon_url' => $icon_url ? $icon_url : '',
+				'icon_key' => $icon_key,
 			);
 		}
 
 		return $flipbooks;
+	}
+
+	/**
+	 * The built-in icons a client can choose from, key to inner SVG markup.
+	 *
+	 * Kept as a small, safe set of stroke icons drawn in a 24 by 24 view box.
+	 *
+	 * @return array
+	 */
+	public static function builtin_icons() {
+		return array(
+			'document'     => '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/>',
+			'text'         => '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/>',
+			'letter'       => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+			'book'         => '<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5V4.5Z"/><path d="M4 4.5A2.5 2.5 0 0 0 6.5 7H20"/>',
+			'proposal'     => '<path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z"/>',
+			'presentation' => '<path d="M2 3h20"/><path d="M3 3v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V3"/><path d="m8 21 4-4 4 4"/>',
+			'image'        => '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L5 21"/>',
+			'folder'       => '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>',
+			'briefcase'    => '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+			'globe'        => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/>',
+			'star'         => '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+			'tag'          => '<path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+		);
+	}
+
+	/**
+	 * Is a key a known built-in icon.
+	 *
+	 * @param string $key Icon key.
+	 * @return bool
+	 */
+	public static function is_builtin_icon( $key ) {
+		return array_key_exists( $key, self::builtin_icons() );
+	}
+
+	/**
+	 * Full inline SVG markup for a built-in icon key.
+	 *
+	 * @param string $key Icon key.
+	 * @return string
+	 */
+	public static function builtin_icon_svg( $key ) {
+		$icons = self::builtin_icons();
+		if ( ! isset( $icons[ $key ] ) ) {
+			return self::default_icon_svg();
+		}
+
+		return '<svg class="kdna-flipbook__item-svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">' . $icons[ $key ] . '</svg>';
 	}
 
 	/**
@@ -304,6 +367,8 @@ class Kdna_Flipbook_Assets {
 			$icon = '<span class="kdna-flipbook__item-icon">';
 			if ( ! empty( $flipbook['icon_url'] ) ) {
 				$icon .= '<img class="kdna-flipbook__item-img" src="' . esc_url( $flipbook['icon_url'] ) . '" alt="" />';
+			} elseif ( ! empty( $flipbook['icon_key'] ) ) {
+				$icon .= self::builtin_icon_svg( $flipbook['icon_key'] );
 			} else {
 				$icon .= self::default_icon_svg();
 			}

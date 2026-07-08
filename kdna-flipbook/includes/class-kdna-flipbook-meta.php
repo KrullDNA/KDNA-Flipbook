@@ -166,16 +166,31 @@ class Kdna_Flipbook_Meta {
 	 * @param array      $row   Saved row data.
 	 */
 	protected function render_row( $index, $row ) {
-		$name    = isset( $row['name'] ) ? $row['name'] : '';
-		$pdf_id  = isset( $row['pdf_id'] ) ? (int) $row['pdf_id'] : 0;
-		$icon_id = isset( $row['icon_id'] ) ? (int) $row['icon_id'] : 0;
-		$sort    = isset( $row['sort'] ) ? (int) $row['sort'] : 0;
+		$name     = isset( $row['name'] ) ? $row['name'] : '';
+		$pdf_id   = isset( $row['pdf_id'] ) ? (int) $row['pdf_id'] : 0;
+		$icon_id  = isset( $row['icon_id'] ) ? (int) $row['icon_id'] : 0;
+		$icon_key = isset( $row['icon_key'] ) ? sanitize_key( $row['icon_key'] ) : '';
+		$sort     = isset( $row['sort'] ) ? (int) $row['sort'] : 0;
 
-		$pdf_name  = $pdf_id ? get_the_title( $pdf_id ) : '';
-		$pdf_url   = $pdf_id ? wp_get_attachment_url( $pdf_id ) : '';
-		$icon_url  = $icon_id ? wp_get_attachment_image_url( $icon_id, 'thumbnail' ) : '';
+		if ( $icon_key && ! Kdna_Flipbook_Assets::is_builtin_icon( $icon_key ) ) {
+			$icon_key = '';
+		}
+
+		$pdf_name = $pdf_id ? get_the_title( $pdf_id ) : '';
+		$pdf_url  = $pdf_id ? wp_get_attachment_url( $pdf_id ) : '';
+
+		$icon_url = '';
+		if ( $icon_id ) {
+			$icon_url = wp_get_attachment_image_url( $icon_id, 'thumbnail' );
+			if ( ! $icon_url ) {
+				$icon_url = wp_get_attachment_url( $icon_id );
+			}
+		}
+
 		$has_pdf   = $pdf_id && $pdf_url;
-		$has_icon  = $icon_id && $icon_url;
+		$has_upload = $icon_id && $icon_url;
+		$has_builtin = ! $has_upload && $icon_key;
+		$has_icon  = $has_upload || $has_builtin;
 		$field     = 'kdna_flipbook_rows[' . $index . ']';
 		?>
 		<li class="kdna-flipbook-row" data-index="<?php echo esc_attr( $index ); ?>">
@@ -200,11 +215,32 @@ class Kdna_Flipbook_Meta {
 				<span class="kdna-flipbook-field kdna-flipbook-field--icon">
 					<span class="kdna-flipbook-field__label"><?php esc_html_e( 'Icon (optional)', 'kdna-flipbook' ); ?></span>
 					<input type="hidden" class="kdna-flipbook-input-icon-id" name="<?php echo esc_attr( $field ); ?>[icon_id]" value="<?php echo esc_attr( $icon_id ); ?>" />
+					<input type="hidden" class="kdna-flipbook-input-icon-key" name="<?php echo esc_attr( $field ); ?>[icon_key]" value="<?php echo esc_attr( $icon_key ); ?>" />
 					<span class="kdna-flipbook-icon-preview" <?php echo $has_icon ? '' : 'style="display:none;"'; ?>>
-						<img src="<?php echo esc_url( $icon_url ); ?>" alt="" />
+						<?php
+						if ( $has_upload ) {
+							echo '<img src="' . esc_url( $icon_url ) . '" alt="" />';
+						} elseif ( $has_builtin ) {
+							echo Kdna_Flipbook_Assets::builtin_icon_svg( $icon_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static, safe inline SVG.
+						}
+						?>
 					</span>
-					<button type="button" class="button kdna-flipbook-choose-icon"><?php echo $has_icon ? esc_html__( 'Change icon', 'kdna-flipbook' ) : esc_html__( 'Choose icon', 'kdna-flipbook' ); ?></button>
+					<button type="button" class="button kdna-flipbook-toggle-iconpicker" aria-expanded="false"><?php echo $has_icon ? esc_html__( 'Change icon', 'kdna-flipbook' ) : esc_html__( 'Choose icon', 'kdna-flipbook' ); ?></button>
 					<button type="button" class="button-link kdna-flipbook-remove-icon" <?php echo $has_icon ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove', 'kdna-flipbook' ); ?></button>
+
+					<span class="kdna-flipbook-iconpicker" hidden>
+						<span class="kdna-flipbook-iconpicker__label"><?php esc_html_e( 'Choose a built-in icon', 'kdna-flipbook' ); ?></span>
+						<span class="kdna-flipbook-iconpicker__grid">
+							<?php foreach ( Kdna_Flipbook_Assets::builtin_icons() as $icon_slug => $icon_paths ) : ?>
+								<button type="button" class="kdna-flipbook-iconpick<?php echo $icon_slug === $icon_key ? ' is-selected' : ''; ?>" data-icon="<?php echo esc_attr( $icon_slug ); ?>" title="<?php echo esc_attr( $icon_slug ); ?>">
+									<?php echo Kdna_Flipbook_Assets::builtin_icon_svg( $icon_slug ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static, safe inline SVG. ?>
+								</button>
+							<?php endforeach; ?>
+						</span>
+						<span class="kdna-flipbook-iconpicker__upload">
+							<button type="button" class="button kdna-flipbook-choose-icon"><?php esc_html_e( 'Upload SVG or image', 'kdna-flipbook' ); ?></button>
+						</span>
+					</span>
 				</span>
 
 				<input type="hidden" class="kdna-flipbook-input-sort" name="<?php echo esc_attr( $field ); ?>[sort]" value="<?php echo esc_attr( $sort ); ?>" />
@@ -300,10 +336,21 @@ class Kdna_Flipbook_Meta {
 				continue;
 			}
 
-			$name    = isset( $row['name'] ) ? sanitize_text_field( $row['name'] ) : '';
-			$pdf_id  = isset( $row['pdf_id'] ) ? absint( $row['pdf_id'] ) : 0;
-			$icon_id = isset( $row['icon_id'] ) ? absint( $row['icon_id'] ) : 0;
-			$sort    = isset( $row['sort'] ) ? absint( $row['sort'] ) : 0;
+			$name     = isset( $row['name'] ) ? sanitize_text_field( $row['name'] ) : '';
+			$pdf_id   = isset( $row['pdf_id'] ) ? absint( $row['pdf_id'] ) : 0;
+			$icon_id  = isset( $row['icon_id'] ) ? absint( $row['icon_id'] ) : 0;
+			$icon_key = isset( $row['icon_key'] ) ? sanitize_key( $row['icon_key'] ) : '';
+			$sort     = isset( $row['sort'] ) ? absint( $row['sort'] ) : 0;
+
+			// Only keep a known built-in icon key.
+			if ( $icon_key && ! Kdna_Flipbook_Assets::is_builtin_icon( $icon_key ) ) {
+				$icon_key = '';
+			}
+
+			// An uploaded icon takes precedence over a built-in one.
+			if ( $icon_id ) {
+				$icon_key = '';
+			}
 
 			// Drop rows that carry no name and no PDF, they are empty.
 			if ( '' === $name && 0 === $pdf_id ) {
@@ -311,10 +358,11 @@ class Kdna_Flipbook_Meta {
 			}
 
 			$clean[] = array(
-				'name'    => $name,
-				'pdf_id'  => $pdf_id,
-				'icon_id' => $icon_id,
-				'sort'    => $sort,
+				'name'     => $name,
+				'pdf_id'   => $pdf_id,
+				'icon_id'  => $icon_id,
+				'icon_key' => $icon_key,
+				'sort'     => $sort,
 			);
 		}
 
