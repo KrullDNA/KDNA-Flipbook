@@ -4,7 +4,7 @@ Tags: pdf, flipbook, elementor, viewer, pdf.js
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,11 @@ No. PDF.js and StPageFlip are bundled inside the plugin, and PDFs are served fro
 The front-end viewer is delivered as an Elementor widget, so Elementor is required to place it on your client template.
 
 == Changelog ==
+
+= 1.0.1 =
+* The custom post type is no longer created until it has been named on the setup screen, so no placeholder post type appears on activation.
+* Added a persistent setup prompt so naming the post type is always offered, even if the activation redirect is blocked by the host.
+* Registered the setup screen reliably under Settings and hid it from the menu.
 
 = 1.0.0 =
 * Stage 0: Plugin scaffold, configurable custom post type, first-run setup and settings screen.

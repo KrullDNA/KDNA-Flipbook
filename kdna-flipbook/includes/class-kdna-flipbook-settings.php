@@ -42,6 +42,7 @@ class Kdna_Flipbook_Settings {
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_init', array( $this, 'maybe_redirect_to_setup' ) );
 		add_action( 'admin_post_kdna_flipbook_save_setup', array( $this, 'handle_setup_save' ) );
+		add_action( 'admin_notices', array( $this, 'setup_notice' ) );
 	}
 
 	/**
@@ -155,14 +156,51 @@ class Kdna_Flipbook_Settings {
 			array( $this, 'render_settings_page' )
 		);
 
-		// Hidden page (no parent) that hosts the first-run setup screen.
+		// First-run setup screen. Registered under Settings so it is reliably
+		// reachable, then removed from the menu so it stays hidden.
 		add_submenu_page(
-			'',
+			'options-general.php',
 			__( 'KDNA PDF Flipbook Setup', 'kdna-flipbook' ),
 			__( 'KDNA PDF Flipbook Setup', 'kdna-flipbook' ),
 			'manage_options',
 			self::SETUP_SLUG,
 			array( $this, 'render_setup_page' )
+		);
+		remove_submenu_page( 'options-general.php', self::SETUP_SLUG );
+	}
+
+	/**
+	 * The URL of the first-run setup screen.
+	 *
+	 * @return string
+	 */
+	public static function setup_url() {
+		return admin_url( 'options-general.php?page=' . self::SETUP_SLUG );
+	}
+
+	/**
+	 * Prompt to complete setup until the CPT has been named.
+	 *
+	 * This is the reliable prompt. The activation redirect is a convenience on top
+	 * of it, but can be swallowed by some hosts, so this notice always shows the
+	 * way to the setup screen.
+	 */
+	public function setup_notice() {
+		if ( self::is_configured() || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		// Do not show it on the setup screen itself.
+		if ( isset( $_GET['page'] ) && self::SETUP_SLUG === sanitize_key( wp_unslash( $_GET['page'] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+
+		printf(
+			'<div class="notice notice-info"><p><strong>%1$s</strong> %2$s</p><p><a class="button button-primary" href="%3$s">%4$s</a></p></div>',
+			esc_html__( 'KDNA PDF Flipbook', 'kdna-flipbook' ),
+			esc_html__( 'Before you start, choose what to call the pages that hold your flipbooks.', 'kdna-flipbook' ),
+			esc_url( self::setup_url() ),
+			esc_html__( 'Name your pages', 'kdna-flipbook' )
 		);
 	}
 
@@ -523,7 +561,7 @@ class Kdna_Flipbook_Settings {
 			return;
 		}
 
-		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SETUP_SLUG ) );
+		wp_safe_redirect( self::setup_url() );
 		exit;
 	}
 }
