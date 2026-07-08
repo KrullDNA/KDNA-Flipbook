@@ -29,10 +29,20 @@
 	--kdna-flipbook-toolbar-hover-bg: rgba( 255, 255, 255, 0.16 );
 	--kdna-flipbook-toolbar-radius: 10px;
 	--kdna-flipbook-btn-size: 40px;
+	--kdna-flipbook-btn-radius: 8px;
+	--kdna-flipbook-toolbar-icon-size: 20px;
 	--kdna-flipbook-fullscreen-bg: #1a1a1a;
+	--kdna-flipbook-zoom-overlay-bg: rgba( 20, 20, 22, 0.92 );
 	--kdna-flipbook-accent: #2271b1;
 	--kdna-flipbook-surface-bg: #ffffff;
 	--kdna-flipbook-surface-color: #1d2327;
+	--kdna-flipbook-meta-color: inherit;
+
+	--kdna-flipbook-thumbs-bg: var( --kdna-flipbook-surface-bg );
+	--kdna-flipbook-thumb-width: 92px;
+	--kdna-flipbook-thumb-gap: 8px;
+	--kdna-flipbook-thumb-active: var( --kdna-flipbook-accent );
+	--kdna-flipbook-thumb-hover-bg: rgba( 128, 128, 128, 0.2 );
 
 	box-sizing: border-box;
 	width: 100%;
@@ -222,7 +232,7 @@
 	inset: 0;
 	overflow: hidden;
 	z-index: 10;
-	background: rgba( 20, 20, 22, 0.92 );
+	background: var( --kdna-flipbook-zoom-overlay-bg );
 	cursor: grab;
 	touch-action: none;
 }
@@ -281,9 +291,14 @@
 	background: transparent;
 	color: inherit;
 	border: none;
-	border-radius: 8px;
+	border-radius: var( --kdna-flipbook-btn-radius );
 	cursor: pointer;
 	transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.kdna-flipbook__btn .kdna-flipbook__icon {
+	width: var( --kdna-flipbook-toolbar-icon-size );
+	height: var( --kdna-flipbook-toolbar-icon-size );
 }
 
 .kdna-flipbook__btn:hover,
@@ -322,6 +337,7 @@
 	font-size: 13px;
 	font-variant-numeric: tabular-nums;
 	user-select: none;
+	color: var( --kdna-flipbook-meta-color );
 }
 
 .kdna-flipbook__btn--sound.is-muted {
@@ -375,7 +391,7 @@
 	bottom: 72px;
 	z-index: 22;
 	padding: 8px;
-	background: var( --kdna-flipbook-surface-bg );
+	background: var( --kdna-flipbook-thumbs-bg );
 	color: var( --kdna-flipbook-surface-color );
 	box-shadow: 0 -4px 16px rgba( 0, 0, 0, 0.18 );
 }
@@ -386,7 +402,7 @@
 
 .kdna-flipbook__thumbs-track {
 	display: flex;
-	gap: 8px;
+	gap: var( --kdna-flipbook-thumb-gap );
 	overflow-x: auto;
 	padding-bottom: 4px;
 }
@@ -394,7 +410,7 @@
 .kdna-flipbook__thumb {
 	position: relative;
 	flex: 0 0 auto;
-	width: 92px;
+	width: var( --kdna-flipbook-thumb-width );
 	min-height: 60px;
 	padding: 0;
 	background: rgba( 128, 128, 128, 0.12 );
@@ -404,8 +420,12 @@
 	overflow: hidden;
 }
 
+.kdna-flipbook__thumb:hover {
+	background: var( --kdna-flipbook-thumb-hover-bg );
+}
+
 .kdna-flipbook__thumb.is-active {
-	border-color: var( --kdna-flipbook-accent );
+	border-color: var( --kdna-flipbook-thumb-active );
 }
 
 .kdna-flipbook__thumb-canvas {
