@@ -40,6 +40,13 @@ final class Kdna_Flipbook {
 	public $cpt;
 
 	/**
+	 * Metabox handler.
+	 *
+	 * @var Kdna_Flipbook_Meta
+	 */
+	public $meta;
+
+	/**
 	 * Return the shared instance, creating it on first call.
 	 *
 	 * @return Kdna_Flipbook
@@ -67,6 +74,7 @@ final class Kdna_Flipbook {
 	private function includes() {
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-settings.php';
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-cpt.php';
+		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-meta.php';
 	}
 
 	/**
@@ -75,6 +83,7 @@ final class Kdna_Flipbook {
 	private function init() {
 		$this->settings = new Kdna_Flipbook_Settings();
 		$this->cpt      = new Kdna_Flipbook_Cpt();
+		$this->meta     = new Kdna_Flipbook_Meta();
 
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 	}
