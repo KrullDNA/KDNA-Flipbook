@@ -442,24 +442,4 @@ class Kdna_Flipbook_Assets {
 
 		return $open . $path . $close;
 	}
-
-	/**
-	 * First flipbook row with a usable PDF, or null.
-	 *
-	 * @param array $rows Flipbook rows.
-	 * @return array|null
-	 */
-	public static function first_flipbook_with_pdf( $rows ) {
-		if ( empty( $rows ) || ! is_array( $rows ) ) {
-			return null;
-		}
-
-		foreach ( $rows as $row ) {
-			if ( ! empty( $row['pdf_id'] ) ) {
-				return $row;
-			}
-		}
-
-		return null;
-	}
 }
