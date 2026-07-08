@@ -47,6 +47,13 @@ final class Kdna_Flipbook {
 	public $meta;
 
 	/**
+	 * Access gate handler.
+	 *
+	 * @var Kdna_Flipbook_Access
+	 */
+	public $access;
+
+	/**
 	 * Assets handler.
 	 *
 	 * @var Kdna_Flipbook_Assets
@@ -82,6 +89,7 @@ final class Kdna_Flipbook {
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-settings.php';
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-cpt.php';
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-meta.php';
+		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-access.php';
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-assets.php';
 	}
 
@@ -92,6 +100,7 @@ final class Kdna_Flipbook {
 		$this->settings = new Kdna_Flipbook_Settings();
 		$this->cpt      = new Kdna_Flipbook_Cpt();
 		$this->meta     = new Kdna_Flipbook_Meta();
+		$this->access   = new Kdna_Flipbook_Access();
 		$this->assets   = new Kdna_Flipbook_Assets();
 
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );

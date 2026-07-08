@@ -1584,12 +1584,126 @@
 		var nodes = context.querySelectorAll( '.kdna-flipbook' );
 
 		Array.prototype.forEach.call( nodes, function ( node ) {
+			// The gate box also carries theme classes, so skip anything without a book.
+			if ( ! node.querySelector( '.kdna-flipbook__book' ) ) {
+				return;
+			}
 			if ( node.getAttribute( 'data-kdna-initialised' ) ) {
 				return;
 			}
 			node.setAttribute( 'data-kdna-initialised', '1' );
 			new KdnaFlipbookViewer( node ).init();
 		} );
+
+		initGates( context );
+	}
+
+	/**
+	 * Bind the access code boxes within a scope.
+	 *
+	 * @param {Document|HTMLElement} context Scope to search within.
+	 */
+	function initGates( context ) {
+		var gates = context.querySelectorAll( '.kdna-flipbook-gate' );
+
+		Array.prototype.forEach.call( gates, function ( gate ) {
+			if ( gate.getAttribute( 'data-kdna-initialised' ) ) {
+				return;
+			}
+			gate.setAttribute( 'data-kdna-initialised', '1' );
+			bindGate( gate );
+		} );
+	}
+
+	/**
+	 * Wire a single access code box to verify over admin-ajax.
+	 *
+	 * @param {HTMLElement} gate The gate container.
+	 */
+	function bindGate( gate ) {
+		var form = gate.querySelector( '.kdna-flipbook-gate__form' );
+		if ( ! form ) {
+			return;
+		}
+
+		var input = form.querySelector( '.kdna-flipbook-gate__input' );
+		var submit = form.querySelector( '.kdna-flipbook-gate__submit' );
+		var errorEl = form.querySelector( '.kdna-flipbook-gate__error' );
+		var nonceEl = form.querySelector( '.kdna-flipbook-gate__nonce' );
+		var postId = gate.getAttribute( 'data-post-id' );
+
+		form.addEventListener( 'submit', function ( event ) {
+			event.preventDefault();
+
+			var code = input ? input.value : '';
+			if ( ! code ) {
+				return;
+			}
+
+			if ( errorEl ) {
+				errorEl.hidden = true;
+			}
+			if ( submit ) {
+				submit.disabled = true;
+				submit.textContent = i18n.gateChecking || 'Checking';
+			}
+
+			var body = new URLSearchParams();
+			body.set( 'action', 'kdna_flipbook_verify' );
+			body.set( 'nonce', nonceEl ? nonceEl.value : '' );
+			body.set( 'post_id', postId || '' );
+			body.set( 'code', code );
+
+			window.fetch( settings.ajaxUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: body.toString()
+			} ).then( function ( response ) {
+				return response.json();
+			} ).then( function ( result ) {
+				if ( result && result.success ) {
+					// The cookie is set, reload so the flipbooks render in context.
+					window.location.reload();
+					return;
+				}
+				showGateError( errorEl, result );
+				resetGateSubmit( submit );
+			} ).catch( function () {
+				showGateError( errorEl, null );
+				resetGateSubmit( submit );
+			} );
+		} );
+	}
+
+	/**
+	 * Show an error in the gate box.
+	 *
+	 * @param {HTMLElement} errorEl Error element.
+	 * @param {Object}      result  AJAX result, if any.
+	 */
+	function showGateError( errorEl, result ) {
+		if ( ! errorEl ) {
+			return;
+		}
+		var message = i18n.gateError || 'That code is not correct. Please try again.';
+		if ( result && result.data && result.data.message ) {
+			message = result.data.message;
+		}
+		errorEl.textContent = message;
+		errorEl.hidden = false;
+	}
+
+	/**
+	 * Restore the gate submit button.
+	 *
+	 * @param {HTMLElement} submit Submit button.
+	 */
+	function resetGateSubmit( submit ) {
+		if ( submit ) {
+			submit.disabled = false;
+			submit.textContent = i18n.gateView || 'View';
+		}
 	}
 
 	// Initialise on DOM ready.

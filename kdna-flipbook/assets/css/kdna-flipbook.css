@@ -519,6 +519,132 @@
 	display: none;
 }
 
+/* Access code box. Custom properties become widget style controls in Stage 8. */
+.kdna-flipbook-gate {
+	--kdna-flipbook-gate-bg: #f6f7f9;
+	--kdna-flipbook-gate-color: #1d2327;
+	--kdna-flipbook-gate-radius: 12px;
+	--kdna-flipbook-gate-accent: #2271b1;
+	--kdna-flipbook-gate-input-bg: #ffffff;
+	--kdna-flipbook-gate-input-border: #c3c4c7;
+	--kdna-flipbook-gate-button-bg: #2271b1;
+	--kdna-flipbook-gate-button-color: #ffffff;
+	--kdna-flipbook-gate-button-hover-bg: #135e96;
+	--kdna-flipbook-gate-error-color: #b32d2e;
+
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 320px;
+	padding: 32px 20px;
+	background: var( --kdna-flipbook-gate-bg );
+	color: var( --kdna-flipbook-gate-color );
+	border-radius: var( --kdna-flipbook-gate-radius );
+}
+
+.kdna-flipbook-gate.kdna-flipbook--theme-custom {
+	--kdna-flipbook-gate-accent: var( --kdna-flipbook-chrome, #2271b1 );
+	--kdna-flipbook-gate-button-bg: var( --kdna-flipbook-chrome, #2271b1 );
+}
+
+.kdna-flipbook-gate *,
+.kdna-flipbook-gate *::before,
+.kdna-flipbook-gate *::after {
+	box-sizing: border-box;
+}
+
+.kdna-flipbook-gate__form {
+	width: 100%;
+	max-width: 380px;
+	text-align: center;
+}
+
+.kdna-flipbook-gate__icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	margin: 0 auto 12px;
+	color: var( --kdna-flipbook-gate-accent );
+}
+
+.kdna-flipbook-gate__icon .kdna-flipbook__icon {
+	width: 32px;
+	height: 32px;
+}
+
+.kdna-flipbook-gate__heading {
+	margin: 0 0 6px;
+	font-size: 20px;
+	line-height: 1.3;
+	color: inherit;
+}
+
+.kdna-flipbook-gate__help {
+	margin: 0 0 18px;
+	opacity: 0.8;
+}
+
+.kdna-flipbook-gate__row {
+	display: flex;
+	gap: 8px;
+	justify-content: center;
+	flex-wrap: wrap;
+}
+
+.kdna-flipbook-gate__input {
+	flex: 1 1 180px;
+	min-width: 0;
+	padding: 10px 12px;
+	background: var( --kdna-flipbook-gate-input-bg );
+	color: var( --kdna-flipbook-gate-color );
+	border: 1px solid var( --kdna-flipbook-gate-input-border );
+	border-radius: 6px;
+	font-size: 15px;
+}
+
+.kdna-flipbook-gate__input:focus {
+	outline: 2px solid var( --kdna-flipbook-gate-accent );
+	outline-offset: 1px;
+	border-color: var( --kdna-flipbook-gate-accent );
+}
+
+.kdna-flipbook-gate__submit {
+	flex: 0 0 auto;
+	padding: 10px 20px;
+	background: var( --kdna-flipbook-gate-button-bg );
+	color: var( --kdna-flipbook-gate-button-color );
+	border: none;
+	border-radius: 6px;
+	font-size: 15px;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.kdna-flipbook-gate__submit:hover,
+.kdna-flipbook-gate__submit:focus-visible {
+	background: var( --kdna-flipbook-gate-button-hover-bg );
+	outline: none;
+}
+
+.kdna-flipbook-gate__submit:disabled {
+	opacity: 0.7;
+	cursor: default;
+}
+
+.kdna-flipbook-gate__error {
+	margin-top: 12px;
+	color: var( --kdna-flipbook-gate-error-color );
+	font-size: 14px;
+}
+
+.kdna-flipbook-gate__error[hidden] {
+	display: none;
+}
+
 /* Fullscreen: the viewer becomes the fullscreen element and fills the screen. */
 .kdna-flipbook__viewer:fullscreen {
 	width: 100vw;

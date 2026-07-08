@@ -102,6 +102,7 @@ class Kdna_Flipbook_Assets {
 			'kdnaFlipbook',
 			array(
 				'workerSrc' => KDNA_FLIPBOOK_URL . 'assets/vendor/pdfjs/pdf.worker.min.js',
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
 				'i18n'      => array(
 					'loading'        => __( 'Loading', 'kdna-flipbook' ),
 					'error'          => __( 'Sorry, this document could not be loaded.', 'kdna-flipbook' ),
@@ -111,6 +112,9 @@ class Kdna_Flipbook_Assets {
 					'linkCopied'     => __( 'Link copied', 'kdna-flipbook' ),
 					'soundOn'        => __( 'Flip sound on', 'kdna-flipbook' ),
 					'soundOff'       => __( 'Flip sound off', 'kdna-flipbook' ),
+					'gateError'      => __( 'That code is not correct. Please try again.', 'kdna-flipbook' ),
+					'gateChecking'   => __( 'Checking', 'kdna-flipbook' ),
+					'gateView'       => __( 'View', 'kdna-flipbook' ),
 				),
 			)
 		);
@@ -454,6 +458,7 @@ class Kdna_Flipbook_Assets {
 			'share'           => '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/>',
 			'sound'           => '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>',
 			'sound-off'       => '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/>',
+			'lock'            => '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
 		);
 
 		$path = isset( $paths[ $name ] ) ? $paths[ $name ] : '';
@@ -472,7 +477,8 @@ class Kdna_Flipbook_Assets {
 			return $content;
 		}
 
-		$rows      = Kdna_Flipbook_Meta::get_rows( get_the_ID() );
+		$post_id   = get_the_ID();
+		$rows      = Kdna_Flipbook_Meta::get_rows( $post_id );
 		$flipbooks = self::build_flipbooks_from_rows( $rows );
 
 		if ( empty( $flipbooks ) ) {
@@ -480,7 +486,7 @@ class Kdna_Flipbook_Assets {
 		}
 
 		$notice = '<p class="kdna-flipbook__temp-note">' . esc_html__( 'Temporary preview: showing this entry\'s flipbooks. This is replaced by the Elementor widget.', 'kdna-flipbook' ) . '</p>';
-		$viewer = self::render( $flipbooks, array( 'active' => 0 ) );
+		$viewer = Kdna_Flipbook_Access::render_with_gate( $post_id, $flipbooks, array( 'active' => 0 ) );
 
 		return $content . $notice . $viewer;
 	}
