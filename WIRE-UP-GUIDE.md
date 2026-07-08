@@ -17,9 +17,12 @@ plugin, so nothing loads from an outside server.
 
 ## 2. Name the custom post type
 
-On the first-run setup screen, choose what to call the pages that hold your
-flipbooks. Each entry is one client page, so you might call these Clients,
-Pitches or Proposals.
+On activation you are taken to a setup screen. If you are not redirected
+automatically, a prompt appears at the top of the admin with a **Name your
+pages** button, and you can always reach it from **Settings, KDNA PDF Flipbook**.
+
+Choose what to call the pages that hold your flipbooks. Each entry is one client
+page, so you might call these Clients, Pitches or Proposals.
 
 1. Enter a **Singular label** (for example, Client).
 2. Enter a **Plural label** (for example, Clients).
