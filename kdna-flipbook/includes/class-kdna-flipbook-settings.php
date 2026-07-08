@@ -99,6 +99,8 @@ class Kdna_Flipbook_Settings {
 			'sound'             => true,
 			'deeplink'          => true,
 			'sidebar'           => true,
+			'autoplay'          => false,
+			'autoplay_delay'    => 5,
 			'toolbar_behaviour' => 'fade',
 			'theme'             => 'light',
 			'custom_color'      => '#2271b1',

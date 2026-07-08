@@ -110,12 +110,39 @@ final class Kdna_Flipbook {
 	 * Register Elementor integrations at file load time.
 	 *
 	 * Per the KDNA conventions we hook Elementor at load time rather than inside
-	 * an elementor/loaded callback. There are no Elementor pieces to register yet
-	 * in this stage, so this is intentionally empty for now and filled in from the
-	 * widget stage onwards.
+	 * an elementor/loaded callback. The callbacks require the Elementor base
+	 * classes, which exist by the time these hooks fire.
 	 */
 	private function register_elementor_hooks() {
-		// Widget and dynamic tag registration is added in later stages.
+		add_action( 'elementor/widgets/register', array( $this, 'register_widget' ) );
+		add_action( 'elementor/dynamic_tags/register', array( $this, 'register_dynamic_tag' ) );
+	}
+
+	/**
+	 * Register the flipbook widget.
+	 *
+	 * @param \Elementor\Widgets_Manager $widgets_manager Widgets manager.
+	 */
+	public function register_widget( $widgets_manager ) {
+		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-widget.php';
+		$widgets_manager->register( new Kdna_Flipbook_Widget() );
+	}
+
+	/**
+	 * Register the flipbook PDF dynamic tag and its group.
+	 *
+	 * @param \Elementor\Core\DynamicTags\Manager $dynamic_tags Dynamic tags manager.
+	 */
+	public function register_dynamic_tag( $dynamic_tags ) {
+		$dynamic_tags->register_group(
+			'kdna-flipbook',
+			array(
+				'title' => __( 'KDNA PDF Flipbook', 'kdna-flipbook' ),
+			)
+		);
+
+		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-dynamic-tag.php';
+		$dynamic_tags->register( new Kdna_Flipbook_Dynamic_Tag() );
 	}
 
 	/**

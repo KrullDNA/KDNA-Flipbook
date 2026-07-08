@@ -106,6 +106,8 @@
 			return {
 				controls: parsed.controls || {},
 				behaviour: parsed.behaviour || 'persistent',
+				autoplay: !! parsed.autoplay,
+				autoplayDelay: parsed.autoplayDelay || 5,
 				start: parsed.start || { flipbook: 0, page: 1 }
 			};
 		} catch ( e ) {
@@ -230,6 +232,7 @@
 		var token = ++this.loadToken;
 		var self = this;
 
+		this.stopAutoplay();
 		this.resetZoom();
 		this.closePanels();
 		this.resetPanels();
@@ -1059,6 +1062,52 @@
 		this.updatePageCount();
 		this.updateDeepLink();
 		this.updateThumbActive();
+		this.startAutoplay();
+	};
+
+	/**
+	 * Start auto-advancing pages when autoplay is enabled.
+	 */
+	KdnaFlipbookViewer.prototype.startAutoplay = function () {
+		this.stopAutoplay();
+		if ( ! this.config.autoplay ) {
+			return;
+		}
+
+		var self = this;
+		var delay = Math.max( 1, this.config.autoplayDelay ) * 1000;
+
+		this.autoplayTimer = window.setInterval( function () {
+			// Pause while zoomed, and stop at the end.
+			if ( self.zoomActive ) {
+				return;
+			}
+			if ( self.currentPageNum() >= self.numPages ) {
+				self.stopAutoplay();
+				return;
+			}
+			self.flipNext();
+		}, delay );
+
+		// Stop autoplay once the reader takes over.
+		if ( ! this.autoplayBound && this.viewer ) {
+			this.autoplayBound = true;
+			var stop = function () {
+				self.stopAutoplay();
+			};
+			this.viewer.addEventListener( 'mousedown', stop );
+			this.viewer.addEventListener( 'touchstart', stop, { passive: true } );
+		}
+	};
+
+	/**
+	 * Stop autoplay.
+	 */
+	KdnaFlipbookViewer.prototype.stopAutoplay = function () {
+		if ( this.autoplayTimer ) {
+			window.clearInterval( this.autoplayTimer );
+			this.autoplayTimer = null;
+		}
 	};
 
 	/**

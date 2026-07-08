@@ -35,20 +35,24 @@ class Kdna_Flipbook_Assets {
 	protected static $enqueued = false;
 
 	/**
-	 * Constructor. Registers the asset and temporary-output hooks.
+	 * Constructor. Registers the assets.
 	 */
 	public function __construct() {
-		add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'maybe_enqueue_for_singular' ), 20 );
-
-		// Temporary front-end output until the Elementor widget lands.
-		add_filter( 'the_content', array( $this, 'render_temporary_output' ), 20 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ), 5 );
+		add_action( 'elementor/editor/after_enqueue_scripts', array( $this, 'register_assets' ) );
 	}
 
 	/**
-	 * Register the vendor and plugin assets without enqueuing them.
+	 * Register the vendor and plugin assets and attach the localised data.
+	 *
+	 * Registration attaches the data so any consumer, including the Elementor
+	 * widget's declared dependencies, gets it when the handle is enqueued.
 	 */
 	public function register_assets() {
+		if ( wp_script_is( self::HANDLE, 'registered' ) ) {
+			return;
+		}
+
 		wp_register_script(
 			self::HANDLE . '-pdfjs',
 			KDNA_FLIPBOOK_URL . 'assets/vendor/pdfjs/pdf.min.js',
@@ -79,23 +83,6 @@ class Kdna_Flipbook_Assets {
 			array(),
 			KDNA_FLIPBOOK_VERSION
 		);
-	}
-
-	/**
-	 * Enqueue the viewer assets. Safe to call more than once.
-	 *
-	 * Later stages, including the Elementor widget, call this to declare that a
-	 * viewer is present on the page.
-	 */
-	public static function enqueue() {
-		if ( self::$enqueued ) {
-			return;
-		}
-
-		self::$enqueued = true;
-
-		wp_enqueue_style( self::HANDLE );
-		wp_enqueue_script( self::HANDLE );
 
 		wp_localize_script(
 			self::HANDLE,
@@ -121,38 +108,26 @@ class Kdna_Flipbook_Assets {
 	}
 
 	/**
-	 * Enqueue assets on the single view of a client entry that has a flipbook.
+	 * Enqueue the viewer assets. Safe to call more than once.
 	 *
-	 * This is the temporary test path. Once the widget exists, enqueueing is driven
-	 * by the widget being present instead.
+	 * The Elementor widget calls this when it renders, and also declares the
+	 * handles as dependencies, so assets load only where a viewer is present.
 	 */
-	public function maybe_enqueue_for_singular() {
-		if ( ! $this->should_load_assets() ) {
+	public static function enqueue() {
+		if ( self::$enqueued ) {
 			return;
 		}
 
-		self::enqueue();
-	}
+		self::$enqueued = true;
 
-	/**
-	 * Should the viewer assets load on this request.
-	 *
-	 * Keyed off the queried object so it can run in the header, before the loop.
-	 *
-	 * @return bool
-	 */
-	protected function should_load_assets() {
-		if ( is_admin() ) {
-			return false;
+		// Make sure the handles exist if this runs before wp_enqueue_scripts.
+		$plugin = kdna_flipbook();
+		if ( isset( $plugin->assets ) ) {
+			$plugin->assets->register_assets();
 		}
 
-		if ( ! is_singular( Kdna_Flipbook_Cpt::get_post_type() ) ) {
-			return false;
-		}
-
-		$rows = Kdna_Flipbook_Meta::get_rows( get_queried_object_id() );
-
-		return (bool) $this->first_flipbook_with_pdf( $rows );
+		wp_enqueue_style( self::HANDLE );
+		wp_enqueue_script( self::HANDLE );
 	}
 
 	/**
@@ -250,6 +225,8 @@ class Kdna_Flipbook_Assets {
 				'deeplink'   => ! empty( $config['deeplink'] ),
 			),
 			'behaviour' => $config['toolbar_behaviour'],
+			'autoplay'  => ! empty( $config['autoplay'] ),
+			'autoplayDelay' => max( 1, (int) $config['autoplay_delay'] ),
 			'start'     => array(
 				'flipbook' => $active,
 				'page'     => isset( $args['start_page'] ) ? max( 1, (int) $args['start_page'] ) : 1,
@@ -467,37 +444,12 @@ class Kdna_Flipbook_Assets {
 	}
 
 	/**
-	 * Append the temporary viewer to the client entry content.
-	 *
-	 * @param string $content Post content.
-	 * @return string
-	 */
-	public function render_temporary_output( $content ) {
-		if ( ! $this->is_temporary_output_context() ) {
-			return $content;
-		}
-
-		$post_id   = get_the_ID();
-		$rows      = Kdna_Flipbook_Meta::get_rows( $post_id );
-		$flipbooks = self::build_flipbooks_from_rows( $rows );
-
-		if ( empty( $flipbooks ) ) {
-			return $content;
-		}
-
-		$notice = '<p class="kdna-flipbook__temp-note">' . esc_html__( 'Temporary preview: showing this entry\'s flipbooks. This is replaced by the Elementor widget.', 'kdna-flipbook' ) . '</p>';
-		$viewer = Kdna_Flipbook_Access::render_with_gate( $post_id, $flipbooks, array( 'active' => 0 ) );
-
-		return $content . $notice . $viewer;
-	}
-
-	/**
-	 * Find the first flipbook row that has a usable PDF.
+	 * First flipbook row with a usable PDF, or null.
 	 *
 	 * @param array $rows Flipbook rows.
 	 * @return array|null
 	 */
-	protected function first_flipbook_with_pdf( $rows ) {
+	public static function first_flipbook_with_pdf( $rows ) {
 		if ( empty( $rows ) || ! is_array( $rows ) ) {
 			return null;
 		}
@@ -509,22 +461,5 @@ class Kdna_Flipbook_Assets {
 		}
 
 		return null;
-	}
-
-	/**
-	 * Are we in the temporary single-entry preview context.
-	 *
-	 * @return bool
-	 */
-	protected function is_temporary_output_context() {
-		if ( ! in_the_loop() || ! is_main_query() ) {
-			return false;
-		}
-
-		if ( get_the_ID() !== get_queried_object_id() ) {
-			return false;
-		}
-
-		return $this->should_load_assets();
 	}
 }
