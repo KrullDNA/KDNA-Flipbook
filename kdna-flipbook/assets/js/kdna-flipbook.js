@@ -18,6 +18,9 @@
 	var settings = window.kdnaFlipbook || {};
 	var i18n = settings.i18n || {};
 
+	// Only the first viewer that wants deep-linking manages the address bar.
+	var deepLinkClaimed = false;
+
 	// Point PDF.js at its bundled worker.
 	if ( window.pdfjsLib && settings.workerSrc ) {
 		window.pdfjsLib.GlobalWorkerOptions.workerSrc = settings.workerSrc;
@@ -41,6 +44,16 @@
 		this.zoomLayer = root.querySelector( '.kdna-flipbook__zoom' );
 		this.zoomCanvas = root.querySelector( '.kdna-flipbook__zoom-canvas' );
 		this.zoomLevelEl = root.querySelector( '.kdna-flipbook__zoom-level' );
+		this.pageCountEl = root.querySelector( '.kdna-flipbook__page-count' );
+		this.thumbsPanel = root.querySelector( '.kdna-flipbook__thumbs' );
+		this.thumbsTrack = root.querySelector( '.kdna-flipbook__thumbs-track' );
+		this.tocPanel = root.querySelector( '.kdna-flipbook__toc' );
+		this.tocBody = root.querySelector( '.kdna-flipbook__toc-body' );
+		this.toast = root.querySelector( '.kdna-flipbook__toast' );
+
+		this.config = this.parseConfig();
+		this.controls = this.config.controls || {};
+		this.behaviour = this.config.behaviour || 'persistent';
 
 		this.pdf = null;
 		this.numPages = 0;
@@ -66,7 +79,39 @@
 		this.drag = null;
 		this.touch = null;
 		this.pinchTarget = null;
+
+		// Toolbar control state.
+		this.soundOn = false;
+		this.audioCtx = null;
+		this.thumbsBuilt = false;
+		this.tocBuilt = false;
+		this.thumbObserver = null;
+		this.ownsDeepLink = false;
+		this.startPage = 1;
 	}
+
+	/**
+	 * Read the per-instance config from the root data attribute.
+	 *
+	 * @return {Object}
+	 */
+	KdnaFlipbookViewer.prototype.parseConfig = function () {
+		var fallback = { controls: {}, behaviour: 'persistent', start: { flipbook: 0, page: 1 } };
+		var raw = this.root.getAttribute( 'data-kdna-config' );
+		if ( ! raw ) {
+			return fallback;
+		}
+		try {
+			var parsed = JSON.parse( raw );
+			return {
+				controls: parsed.controls || {},
+				behaviour: parsed.behaviour || 'persistent',
+				start: parsed.start || { flipbook: 0, page: 1 }
+			};
+		} catch ( e ) {
+			return fallback;
+		}
+	};
 
 	/**
 	 * Wire up the sidebar and load the active flipbook.
@@ -90,8 +135,46 @@
 		this.setupControls();
 		this.setupZoom();
 		this.setupFullscreen();
+		this.setupToolbarBehaviour();
 
-		this.loadFlipbook( this.startIndex() );
+		// Claim deep-linking for the first viewer that wants it on the page.
+		if ( this.controls.deeplink && ! deepLinkClaimed ) {
+			this.ownsDeepLink = true;
+			deepLinkClaimed = true;
+		}
+
+		var target = this.startTarget();
+		this.loadFlipbook( target.flipbook, target.page );
+	};
+
+	/**
+	 * Work out the flipbook and page to open first.
+	 *
+	 * Prefers the deep-link URL when this viewer owns it, otherwise the config.
+	 *
+	 * @return {Object}
+	 */
+	KdnaFlipbookViewer.prototype.startTarget = function () {
+		var flipbook = this.startIndex();
+		var page = this.config.start && this.config.start.page ? this.config.start.page : 1;
+
+		if ( this.ownsDeepLink ) {
+			var params = new URLSearchParams( window.location.search );
+			if ( params.has( 'kdnafb' ) ) {
+				var fb = parseInt( params.get( 'kdnafb' ), 10 );
+				if ( ! isNaN( fb ) && fb >= 0 && ( ! this.items.length || fb < this.items.length ) ) {
+					flipbook = fb;
+				}
+			}
+			if ( params.has( 'kdnapg' ) ) {
+				var pg = parseInt( params.get( 'kdnapg' ), 10 );
+				if ( ! isNaN( pg ) && pg >= 1 ) {
+					page = pg;
+				}
+			}
+		}
+
+		return { flipbook: flipbook, page: page };
 	};
 
 	/**
@@ -128,7 +211,7 @@
 	 *
 	 * @param {number} index Flipbook index.
 	 */
-	KdnaFlipbookViewer.prototype.loadFlipbook = function ( index ) {
+	KdnaFlipbookViewer.prototype.loadFlipbook = function ( index, startPage ) {
 		if ( index === this.activeIndex ) {
 			return;
 		}
@@ -141,12 +224,15 @@
 
 		this.activeIndex = index;
 		this.setActiveItem( index );
+		this.startPage = startPage && startPage > 1 ? startPage : 1;
 
 		// Guard against overlapping loads when a reader switches quickly.
 		var token = ++this.loadToken;
 		var self = this;
 
 		this.resetZoom();
+		this.closePanels();
+		this.resetPanels();
 		this.hideError();
 		this.showOverlay( true );
 		this.teardown();
@@ -168,6 +254,12 @@
 				self.pageRatio = viewport.height / viewport.width;
 				self.buildPages();
 				self.initFlip();
+
+				// Jump to the requested start page without an animation.
+				if ( self.startPage > 1 && self.pageFlip && typeof self.pageFlip.turnToPage === 'function' ) {
+					self.pageFlip.turnToPage( clamp( self.startPage - 1, 0, self.numPages - 1 ) );
+				}
+
 				return self.renderAround( self.currentIndex() );
 			} )
 			.then( function () {
@@ -175,6 +267,7 @@
 					return;
 				}
 				self.showOverlay( false );
+				self.onFlipbookReady();
 			} )
 			.catch( function ( error ) {
 				if ( token !== self.loadToken ) {
@@ -280,7 +373,7 @@
 		this.pageFlip.loadFromHTML( this.book.querySelectorAll( '.kdna-flipbook__page' ) );
 
 		this.pageFlip.on( 'flip', function ( event ) {
-			self.renderAround( event.data );
+			self.onFlip( event.data );
 		} );
 
 		// Re-render the visible window when the layout switches orientation.
@@ -462,6 +555,20 @@
 				self.zoomBy( -self.zoomStep );
 			} else if ( 'fullscreen' === action ) {
 				self.toggleFullscreen();
+			} else if ( 'prev' === action ) {
+				self.flipPrev();
+			} else if ( 'next' === action ) {
+				self.flipNext();
+			} else if ( 'thumbnails' === action ) {
+				self.toggleThumbs();
+			} else if ( 'toc' === action ) {
+				self.toggleToc();
+			} else if ( 'download' === action ) {
+				self.download();
+			} else if ( 'share' === action ) {
+				self.share();
+			} else if ( 'sound' === action ) {
+				self.toggleSound();
 			}
 		} );
 
@@ -938,6 +1045,533 @@
 				self.renderAround( self.currentIndex() );
 			}
 		}, 250 );
+	};
+
+	/* -------------------------------------------------------------------------
+	 * Toolbar controls: arrows, thumbnails, contents, download, share, sound,
+	 * deep-linking and toolbar behaviour.
+	 * ---------------------------------------------------------------------- */
+
+	/**
+	 * Things to do after a flipbook has finished loading.
+	 */
+	KdnaFlipbookViewer.prototype.onFlipbookReady = function () {
+		this.updatePageCount();
+		this.updateDeepLink();
+		this.updateThumbActive();
+	};
+
+	/**
+	 * Central handler for a page turn.
+	 *
+	 * @param {number} index Zero-based current page index.
+	 */
+	KdnaFlipbookViewer.prototype.onFlip = function ( index ) {
+		this.renderAround( index );
+		this.updatePageCount();
+		this.updateDeepLink();
+		this.updateThumbActive();
+		if ( this.soundOn ) {
+			this.playFlipSound();
+		}
+	};
+
+	/**
+	 * Turn to the previous page.
+	 */
+	KdnaFlipbookViewer.prototype.flipPrev = function () {
+		if ( this.pageFlip && typeof this.pageFlip.flipPrev === 'function' ) {
+			this.pageFlip.flipPrev();
+		}
+	};
+
+	/**
+	 * Turn to the next page.
+	 */
+	KdnaFlipbookViewer.prototype.flipNext = function () {
+		if ( this.pageFlip && typeof this.pageFlip.flipNext === 'function' ) {
+			this.pageFlip.flipNext();
+		}
+	};
+
+	/**
+	 * Go to a one-based page number.
+	 *
+	 * @param {number}  pageNum One-based page number.
+	 * @param {boolean} animate Whether to animate the turn.
+	 */
+	KdnaFlipbookViewer.prototype.goToPage = function ( pageNum, animate ) {
+		if ( ! this.pageFlip ) {
+			return;
+		}
+		var index = clamp( pageNum - 1, 0, this.numPages - 1 );
+		if ( animate && typeof this.pageFlip.flip === 'function' ) {
+			this.pageFlip.flip( index );
+		} else if ( typeof this.pageFlip.turnToPage === 'function' ) {
+			this.pageFlip.turnToPage( index );
+			this.onFlip( index );
+		}
+	};
+
+	/**
+	 * Update the "page x of y" readout.
+	 */
+	KdnaFlipbookViewer.prototype.updatePageCount = function () {
+		if ( ! this.pageCountEl ) {
+			return;
+		}
+		var current = this.currentPageNum();
+		this.pageCountEl.textContent = current + ' / ' + ( this.numPages || 1 );
+	};
+
+	/* --- Thumbnails ------------------------------------------------------- */
+
+	/**
+	 * Toggle the thumbnails panel.
+	 */
+	KdnaFlipbookViewer.prototype.toggleThumbs = function () {
+		if ( ! this.thumbsPanel ) {
+			return;
+		}
+		var open = this.thumbsPanel.hidden;
+		this.closePanels();
+		if ( open ) {
+			this.thumbsPanel.hidden = false;
+			this.setButtonActive( 'thumbnails', true );
+			this.buildThumbs();
+			this.updateThumbActive();
+		}
+	};
+
+	/**
+	 * Build the thumbnails lazily, rendering each as it scrolls into view.
+	 */
+	KdnaFlipbookViewer.prototype.buildThumbs = function () {
+		if ( this.thumbsBuilt || ! this.thumbsTrack || ! this.pdf ) {
+			return;
+		}
+		this.thumbsBuilt = true;
+
+		var self = this;
+		this.thumbObserver = new IntersectionObserver( function ( entries ) {
+			entries.forEach( function ( entry ) {
+				if ( entry.isIntersecting ) {
+					self.renderThumb( entry.target );
+					self.thumbObserver.unobserve( entry.target );
+				}
+			} );
+		}, { root: this.thumbsTrack, rootMargin: '200px' } );
+
+		for ( var i = 1; i <= this.numPages; i++ ) {
+			var button = document.createElement( 'button' );
+			button.type = 'button';
+			button.className = 'kdna-flipbook__thumb';
+			button.setAttribute( 'data-page', String( i ) );
+			button.setAttribute( 'aria-label', 'Page ' + i );
+
+			var number = document.createElement( 'span' );
+			number.className = 'kdna-flipbook__thumb-num';
+			number.textContent = String( i );
+			button.appendChild( number );
+
+			button.addEventListener( 'click', ( function ( pageNum ) {
+				return function () {
+					self.goToPage( pageNum, true );
+				};
+			} )( i ) );
+
+			this.thumbsTrack.appendChild( button );
+			this.thumbObserver.observe( button );
+		}
+	};
+
+	/**
+	 * Render one thumbnail canvas.
+	 *
+	 * @param {HTMLElement} button The thumbnail button.
+	 */
+	KdnaFlipbookViewer.prototype.renderThumb = function ( button ) {
+		var self = this;
+		var pageNum = parseInt( button.getAttribute( 'data-page' ), 10 );
+		var pdf = this.pdf;
+
+		pdf.getPage( pageNum ).then( function ( page ) {
+			if ( self.pdf !== pdf ) {
+				return;
+			}
+			var target = 120;
+			var base = page.getViewport( { scale: 1 } );
+			var scale = target / base.width;
+			var viewport = page.getViewport( { scale: scale } );
+
+			var canvas = document.createElement( 'canvas' );
+			canvas.className = 'kdna-flipbook__thumb-canvas';
+			canvas.width = Math.floor( viewport.width );
+			canvas.height = Math.floor( viewport.height );
+
+			return page.render( { canvasContext: canvas.getContext( '2d' ), viewport: viewport } ).promise.then( function () {
+				if ( self.pdf !== pdf ) {
+					return;
+				}
+				button.insertBefore( canvas, button.firstChild );
+			} );
+		} ).catch( function () {} );
+	};
+
+	/**
+	 * Highlight the thumbnail for the current page.
+	 */
+	KdnaFlipbookViewer.prototype.updateThumbActive = function () {
+		if ( ! this.thumbsTrack ) {
+			return;
+		}
+		var current = this.currentPageNum();
+		var thumbs = this.thumbsTrack.querySelectorAll( '.kdna-flipbook__thumb' );
+		Array.prototype.forEach.call( thumbs, function ( thumb ) {
+			var page = parseInt( thumb.getAttribute( 'data-page' ), 10 );
+			thumb.classList.toggle( 'is-active', page === current );
+		} );
+	};
+
+	/* --- Table of contents ------------------------------------------------ */
+
+	/**
+	 * Toggle the table of contents panel.
+	 */
+	KdnaFlipbookViewer.prototype.toggleToc = function () {
+		if ( ! this.tocPanel ) {
+			return;
+		}
+		var open = this.tocPanel.hidden;
+		this.closePanels();
+		if ( open ) {
+			this.tocPanel.hidden = false;
+			this.setButtonActive( 'toc', true );
+			this.buildToc();
+		}
+	};
+
+	/**
+	 * Build the contents list from the PDF outline.
+	 */
+	KdnaFlipbookViewer.prototype.buildToc = function () {
+		if ( this.tocBuilt || ! this.tocBody || ! this.pdf ) {
+			return;
+		}
+		this.tocBuilt = true;
+
+		var self = this;
+		this.pdf.getOutline().then( function ( outline ) {
+			if ( ! outline || ! outline.length ) {
+				self.tocBody.innerHTML = '<p class="kdna-flipbook__toc-empty">' + ( i18n.noContents || 'No contents in this document.' ) + '</p>';
+				return;
+			}
+			var list = self.buildTocList( outline );
+			self.tocBody.innerHTML = '';
+			self.tocBody.appendChild( list );
+		} ).catch( function () {
+			self.tocBody.innerHTML = '<p class="kdna-flipbook__toc-empty">' + ( i18n.noContents || 'No contents in this document.' ) + '</p>';
+		} );
+	};
+
+	/**
+	 * Build a nested list element from outline items.
+	 *
+	 * @param {Array} items Outline items.
+	 * @return {HTMLElement}
+	 */
+	KdnaFlipbookViewer.prototype.buildTocList = function ( items ) {
+		var self = this;
+		var ul = document.createElement( 'ul' );
+		ul.className = 'kdna-flipbook__toc-list';
+
+		items.forEach( function ( item ) {
+			var li = document.createElement( 'li' );
+			var link = document.createElement( 'button' );
+			link.type = 'button';
+			link.className = 'kdna-flipbook__toc-link';
+			link.textContent = item.title || '';
+			link.addEventListener( 'click', function () {
+				self.resolveDest( item.dest ).then( function ( pageIndex ) {
+					if ( null !== pageIndex ) {
+						self.goToPage( pageIndex + 1, true );
+						self.closePanels();
+					}
+				} );
+			} );
+			li.appendChild( link );
+
+			if ( item.items && item.items.length ) {
+				li.appendChild( self.buildTocList( item.items ) );
+			}
+			ul.appendChild( li );
+		} );
+
+		return ul;
+	};
+
+	/**
+	 * Resolve an outline destination to a zero-based page index.
+	 *
+	 * @param {Array|string} dest Destination.
+	 * @return {Promise<number|null>}
+	 */
+	KdnaFlipbookViewer.prototype.resolveDest = function ( dest ) {
+		var pdf = this.pdf;
+		var lookup = 'string' === typeof dest ? pdf.getDestination( dest ) : Promise.resolve( dest );
+
+		return Promise.resolve( lookup ).then( function ( resolved ) {
+			if ( ! resolved || ! resolved.length ) {
+				return null;
+			}
+			var ref = resolved[ 0 ];
+			if ( ref && 'object' === typeof ref ) {
+				return pdf.getPageIndex( ref ).then( function ( index ) {
+					return index;
+				} ).catch( function () {
+					return null;
+				} );
+			}
+			if ( 'number' === typeof ref ) {
+				return ref;
+			}
+			return null;
+		} ).catch( function () {
+			return null;
+		} );
+	};
+
+	/* --- Download and share ---------------------------------------------- */
+
+	/**
+	 * Download the current flipbook's original PDF.
+	 */
+	KdnaFlipbookViewer.prototype.download = function () {
+		var url = this.pdfUrlFor( this.activeIndex );
+		if ( ! url ) {
+			return;
+		}
+		var link = document.createElement( 'a' );
+		link.href = url;
+		link.download = '';
+		link.rel = 'noopener';
+		document.body.appendChild( link );
+		link.click();
+		document.body.removeChild( link );
+	};
+
+	/**
+	 * Build a deep-link URL for the current flipbook and page.
+	 *
+	 * @return {string}
+	 */
+	KdnaFlipbookViewer.prototype.deepLinkUrl = function () {
+		var url = new URL( window.location.href );
+		url.searchParams.set( 'kdnafb', String( this.activeIndex ) );
+		url.searchParams.set( 'kdnapg', String( this.currentPageNum() ) );
+		return url.toString();
+	};
+
+	/**
+	 * Share the current view, or copy the link if sharing is unavailable.
+	 */
+	KdnaFlipbookViewer.prototype.share = function () {
+		var self = this;
+		var url = this.controls.deeplink ? this.deepLinkUrl() : window.location.href;
+		var title = document.title || '';
+
+		if ( navigator.share ) {
+			navigator.share( { title: title, url: url } ).catch( function () {} );
+			return;
+		}
+
+		if ( navigator.clipboard && navigator.clipboard.writeText ) {
+			navigator.clipboard.writeText( url ).then( function () {
+				self.showToast( i18n.linkCopied || 'Link copied' );
+			} ).catch( function () {
+				self.showToast( url );
+			} );
+			return;
+		}
+
+		self.showToast( url );
+	};
+
+	/**
+	 * Update the address bar with the current flipbook and page.
+	 */
+	KdnaFlipbookViewer.prototype.updateDeepLink = function () {
+		if ( ! this.ownsDeepLink || ! window.history || ! window.history.replaceState ) {
+			return;
+		}
+		try {
+			window.history.replaceState( null, '', this.deepLinkUrl() );
+		} catch ( e ) {
+			// Ignore environments that block replaceState.
+		}
+	};
+
+	/* --- Flip sound ------------------------------------------------------- */
+
+	/**
+	 * Toggle the flip sound on or off.
+	 */
+	KdnaFlipbookViewer.prototype.toggleSound = function () {
+		this.soundOn = ! this.soundOn;
+		this.setButtonActive( 'sound', this.soundOn );
+
+		var button = this.root.querySelector( '.kdna-flipbook__btn--sound' );
+		if ( button ) {
+			var label = this.soundOn ? ( i18n.soundOn || 'Flip sound on' ) : ( i18n.soundOff || 'Flip sound off' );
+			button.setAttribute( 'aria-label', label );
+			button.setAttribute( 'title', label );
+			button.classList.toggle( 'is-muted', ! this.soundOn );
+		}
+
+		// Prime the audio context on this user gesture.
+		if ( this.soundOn && ! this.audioCtx ) {
+			var Ctx = window.AudioContext || window.webkitAudioContext;
+			if ( Ctx ) {
+				this.audioCtx = new Ctx();
+			}
+		}
+	};
+
+	/**
+	 * Play a short synthesised page-flip sound. No audio file needed.
+	 */
+	KdnaFlipbookViewer.prototype.playFlipSound = function () {
+		if ( ! this.audioCtx ) {
+			return;
+		}
+		var ctx = this.audioCtx;
+		if ( 'suspended' === ctx.state && ctx.resume ) {
+			ctx.resume();
+		}
+
+		var duration = 0.18;
+		var frames = Math.floor( ctx.sampleRate * duration );
+		var buffer = ctx.createBuffer( 1, frames, ctx.sampleRate );
+		var data = buffer.getChannelData( 0 );
+
+		// Noise with a quick decay, shaped like a paper riffle.
+		for ( var i = 0; i < frames; i++ ) {
+			var envelope = Math.pow( 1 - i / frames, 2.2 );
+			data[ i ] = ( Math.random() * 2 - 1 ) * envelope;
+		}
+
+		var source = ctx.createBufferSource();
+		source.buffer = buffer;
+
+		var filter = ctx.createBiquadFilter();
+		filter.type = 'bandpass';
+		filter.frequency.value = 2200;
+		filter.Q.value = 0.7;
+
+		var gain = ctx.createGain();
+		gain.gain.value = 0.25;
+
+		source.connect( filter );
+		filter.connect( gain );
+		gain.connect( ctx.destination );
+		source.start();
+	};
+
+	/* --- Panels, toast and toolbar behaviour ------------------------------ */
+
+	/**
+	 * Close any open panels and clear their active buttons.
+	 */
+	KdnaFlipbookViewer.prototype.closePanels = function () {
+		if ( this.thumbsPanel ) {
+			this.thumbsPanel.hidden = true;
+			this.setButtonActive( 'thumbnails', false );
+		}
+		if ( this.tocPanel ) {
+			this.tocPanel.hidden = true;
+			this.setButtonActive( 'toc', false );
+		}
+	};
+
+	/**
+	 * Reset panel content when the flipbook changes.
+	 */
+	KdnaFlipbookViewer.prototype.resetPanels = function () {
+		this.thumbsBuilt = false;
+		this.tocBuilt = false;
+		if ( this.thumbObserver ) {
+			this.thumbObserver.disconnect();
+			this.thumbObserver = null;
+		}
+		if ( this.thumbsTrack ) {
+			this.thumbsTrack.innerHTML = '';
+		}
+		if ( this.tocBody ) {
+			this.tocBody.innerHTML = '';
+		}
+	};
+
+	/**
+	 * Toggle the active state of a toolbar button.
+	 *
+	 * @param {string}  action Button action name.
+	 * @param {boolean} active Whether it is active.
+	 */
+	KdnaFlipbookViewer.prototype.setButtonActive = function ( action, active ) {
+		var button = this.root.querySelector( '.kdna-flipbook__btn--' + action );
+		if ( button ) {
+			button.classList.toggle( 'is-active', !! active );
+		}
+	};
+
+	/**
+	 * Briefly show a status toast.
+	 *
+	 * @param {string} text Text to show.
+	 */
+	KdnaFlipbookViewer.prototype.showToast = function ( text ) {
+		if ( ! this.toast ) {
+			return;
+		}
+		var self = this;
+		this.toast.textContent = text;
+		this.toast.hidden = false;
+		this.toast.classList.add( 'is-visible' );
+
+		window.clearTimeout( this.toastTimer );
+		this.toastTimer = window.setTimeout( function () {
+			self.toast.classList.remove( 'is-visible' );
+			self.toast.hidden = true;
+		}, 2600 );
+	};
+
+	/**
+	 * Fade the toolbar while reading, reappearing on activity.
+	 */
+	KdnaFlipbookViewer.prototype.setupToolbarBehaviour = function () {
+		if ( 'fade' !== this.behaviour || ! this.viewer ) {
+			return;
+		}
+
+		var self = this;
+		var timer;
+
+		var show = function () {
+			self.root.classList.remove( 'is-idle' );
+			window.clearTimeout( timer );
+			timer = window.setTimeout( function () {
+				self.root.classList.add( 'is-idle' );
+			}, 2600 );
+		};
+
+		this.viewer.addEventListener( 'mousemove', show );
+		this.viewer.addEventListener( 'touchstart', show, { passive: true } );
+		this.viewer.addEventListener( 'mouseleave', function () {
+			window.clearTimeout( timer );
+			self.root.classList.add( 'is-idle' );
+		} );
+
+		show();
 	};
 
 	/**

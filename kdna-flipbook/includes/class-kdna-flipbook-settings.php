@@ -74,9 +74,49 @@ class Kdna_Flipbook_Settings {
 			'cpt_plural'   => __( 'Clients', 'kdna-flipbook' ),
 			'cpt_slug'     => 'kdna-client',
 			'configured'   => false,
-			// Front-end defaults are stored here from later stages.
-			'defaults'     => array(),
+			// Front-end defaults. From Stage 7 the widget can override these per instance.
+			'defaults'     => self::get_frontend_defaults(),
 		);
+	}
+
+	/**
+	 * Default front-end view options.
+	 *
+	 * Each control can be shown or hidden, the toolbar can fade or stay put, and
+	 * the chrome theme is light, dark or a custom colour.
+	 *
+	 * @return array
+	 */
+	public static function get_frontend_defaults() {
+		return array(
+			'arrows'            => true,
+			'thumbnails'        => true,
+			'zoom'              => true,
+			'fullscreen'        => true,
+			'toc'               => true,
+			'download'          => true,
+			'share'             => true,
+			'sound'             => true,
+			'deeplink'          => true,
+			'sidebar'           => true,
+			'toolbar_behaviour' => 'fade',
+			'theme'             => 'light',
+			'custom_color'      => '#2271b1',
+		);
+	}
+
+	/**
+	 * Read the merged front-end defaults.
+	 *
+	 * @return array
+	 */
+	public static function get_frontend() {
+		$saved = self::get( 'defaults', array() );
+		if ( ! is_array( $saved ) ) {
+			$saved = array();
+		}
+
+		return wp_parse_args( $saved, self::get_frontend_defaults() );
 	}
 
 	/**
@@ -183,6 +223,21 @@ class Kdna_Flipbook_Settings {
 				'description' => __( 'Used in the post type key and the URL. Lowercase letters, numbers and hyphens, up to 20 characters. Changing this after entries exist will change their URLs.', 'kdna-flipbook' ),
 			)
 		);
+
+		add_settings_section(
+			'kdna_flipbook_frontend_section',
+			__( 'Front-end defaults', 'kdna-flipbook' ),
+			array( $this, 'render_frontend_section_intro' ),
+			self::PAGE_SLUG
+		);
+
+		add_settings_field(
+			'kdna_flipbook_frontend',
+			__( 'Viewer defaults', 'kdna-flipbook' ),
+			array( $this, 'render_frontend_fields' ),
+			self::PAGE_SLUG,
+			'kdna_flipbook_frontend_section'
+		);
 	}
 
 	/**
@@ -190,6 +245,77 @@ class Kdna_Flipbook_Settings {
 	 */
 	public function render_cpt_section_intro() {
 		echo '<p>' . esc_html__( 'Name the custom post type that holds each client page. You can change these at any time.', 'kdna-flipbook' ) . '</p>';
+	}
+
+	/**
+	 * Intro copy for the front-end defaults section.
+	 */
+	public function render_frontend_section_intro() {
+		echo '<p>' . esc_html__( 'Defaults for the viewer toolbar and chrome. From the Elementor widget stage these can be overridden per widget.', 'kdna-flipbook' ) . '</p>';
+	}
+
+	/**
+	 * Render the front-end defaults fields.
+	 */
+	public function render_frontend_fields() {
+		$config = self::get_frontend();
+		$name   = self::OPTION_KEY . '[defaults]';
+
+		$controls = array(
+			'arrows'     => __( 'Previous and next arrows', 'kdna-flipbook' ),
+			'thumbnails' => __( 'Page thumbnails or index strip', 'kdna-flipbook' ),
+			'zoom'       => __( 'Zoom', 'kdna-flipbook' ),
+			'fullscreen' => __( 'Fullscreen', 'kdna-flipbook' ),
+			'toc'        => __( 'Table of contents', 'kdna-flipbook' ),
+			'download'   => __( 'Download the original PDF', 'kdna-flipbook' ),
+			'share'      => __( 'Share', 'kdna-flipbook' ),
+			'sound'      => __( 'Flip sound', 'kdna-flipbook' ),
+			'deeplink'   => __( 'Deep-linking', 'kdna-flipbook' ),
+			'sidebar'    => __( 'Sidebar', 'kdna-flipbook' ),
+		);
+
+		echo '<fieldset><legend class="screen-reader-text">' . esc_html__( 'Toolbar controls', 'kdna-flipbook' ) . '</legend>';
+
+		foreach ( $controls as $key => $label ) {
+			printf(
+				'<label style="display:block;margin:2px 0;"><input type="checkbox" name="%1$s[%2$s]" value="1" %3$s /> %4$s</label>',
+				esc_attr( $name ),
+				esc_attr( $key ),
+				checked( ! empty( $config[ $key ] ), true, false ),
+				esc_html( $label )
+			);
+		}
+
+		echo '</fieldset>';
+
+		// Toolbar behaviour.
+		echo '<p style="margin-top:12px;"><strong>' . esc_html__( 'Toolbar behaviour', 'kdna-flipbook' ) . '</strong></p>';
+		echo '<select name="' . esc_attr( $name ) . '[toolbar_behaviour]">';
+		foreach ( array(
+			'fade'       => __( 'Fade away while reading', 'kdna-flipbook' ),
+			'persistent' => __( 'Always visible', 'kdna-flipbook' ),
+		) as $value => $label ) {
+			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $config['toolbar_behaviour'], $value, false ), esc_html( $label ) );
+		}
+		echo '</select>';
+
+		// Chrome theme.
+		echo '<p style="margin-top:12px;"><strong>' . esc_html__( 'Chrome theme', 'kdna-flipbook' ) . '</strong></p>';
+		echo '<select name="' . esc_attr( $name ) . '[theme]">';
+		foreach ( array(
+			'light'  => __( 'Light', 'kdna-flipbook' ),
+			'dark'   => __( 'Dark', 'kdna-flipbook' ),
+			'custom' => __( 'Custom colour', 'kdna-flipbook' ),
+		) as $value => $label ) {
+			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $config['theme'], $value, false ), esc_html( $label ) );
+		}
+		echo '</select> ';
+		printf(
+			'<input type="text" name="%1$s[custom_color]" value="%2$s" placeholder="#2271b1" class="regular-text" style="max-width:120px;" />',
+			esc_attr( $name ),
+			esc_attr( $config['custom_color'] )
+		);
+		echo '<p class="description">' . esc_html__( 'The custom colour is used when the chrome theme is set to Custom colour.', 'kdna-flipbook' ) . '</p>';
 	}
 
 	/**
@@ -249,11 +375,48 @@ class Kdna_Flipbook_Settings {
 			}
 		}
 
+		// Front-end defaults.
+		if ( isset( $input['defaults'] ) ) {
+			$clean['defaults'] = self::sanitize_frontend( $input['defaults'] );
+		}
+
 		// Saving the settings marks the plugin as configured.
 		$clean['configured'] = true;
 
 		// Rewrite rules need refreshing after the slug may have changed.
 		set_transient( 'kdna_flipbook_flush_rewrite', 1, 60 );
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitise the front-end defaults.
+	 *
+	 * @param mixed $input Raw defaults input.
+	 * @return array
+	 */
+	public static function sanitize_frontend( $input ) {
+		if ( ! is_array( $input ) ) {
+			$input = array();
+		}
+
+		$defaults = self::get_frontend_defaults();
+		$clean    = array();
+
+		// Toggle controls: a checkbox is present only when ticked.
+		$toggles = array( 'arrows', 'thumbnails', 'zoom', 'fullscreen', 'toc', 'download', 'share', 'sound', 'deeplink', 'sidebar' );
+		foreach ( $toggles as $key ) {
+			$clean[ $key ] = ! empty( $input[ $key ] );
+		}
+
+		$behaviour                  = isset( $input['toolbar_behaviour'] ) ? sanitize_key( $input['toolbar_behaviour'] ) : '';
+		$clean['toolbar_behaviour'] = in_array( $behaviour, array( 'fade', 'persistent' ), true ) ? $behaviour : $defaults['toolbar_behaviour'];
+
+		$theme          = isset( $input['theme'] ) ? sanitize_key( $input['theme'] ) : '';
+		$clean['theme'] = in_array( $theme, array( 'light', 'dark', 'custom' ), true ) ? $theme : $defaults['theme'];
+
+		$color                 = isset( $input['custom_color'] ) ? sanitize_hex_color( $input['custom_color'] ) : '';
+		$clean['custom_color'] = $color ? $color : $defaults['custom_color'];
 
 		return $clean;
 	}
