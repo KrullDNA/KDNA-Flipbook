@@ -1,0 +1,742 @@
+/**
+ * KDNA PDF Flipbook: front-end base and responsive styles.
+ *
+ * Scoped to the kdna-flipbook- prefix. Custom properties give later stages a
+ * clean place to hang Elementor style controls without touching this file.
+ */
+
+.kdna-flipbook {
+	--kdna-flipbook-bg: transparent;
+	--kdna-flipbook-page-bg: #ffffff;
+	--kdna-flipbook-spinner-color: #2271b1;
+	--kdna-flipbook-spinner-size: 40px;
+	--kdna-flipbook-radius: 2px;
+	--kdna-flipbook-max-width: 1100px;
+
+	--kdna-flipbook-sidebar-bg: #f6f7f9;
+	--kdna-flipbook-sidebar-width: 220px;
+	--kdna-flipbook-sidebar-padding: 12px;
+	--kdna-flipbook-item-gap: 6px;
+	--kdna-flipbook-item-color: #1d2327;
+	--kdna-flipbook-item-hover-bg: #eceef1;
+	--kdna-flipbook-item-active-bg: #ffffff;
+	--kdna-flipbook-item-active-color: #2271b1;
+	--kdna-flipbook-icon-color: #646970;
+	--kdna-flipbook-icon-size: 24px;
+
+	--kdna-flipbook-toolbar-bg: rgba( 32, 34, 38, 0.86 );
+	--kdna-flipbook-toolbar-color: #ffffff;
+	--kdna-flipbook-toolbar-hover-bg: rgba( 255, 255, 255, 0.16 );
+	--kdna-flipbook-toolbar-radius: 10px;
+	--kdna-flipbook-btn-size: 40px;
+	--kdna-flipbook-btn-radius: 8px;
+	--kdna-flipbook-toolbar-icon-size: 20px;
+	--kdna-flipbook-fullscreen-bg: #1a1a1a;
+	--kdna-flipbook-zoom-overlay-bg: rgba( 20, 20, 22, 0.92 );
+	--kdna-flipbook-accent: #2271b1;
+	--kdna-flipbook-surface-bg: #ffffff;
+	--kdna-flipbook-surface-color: #1d2327;
+	--kdna-flipbook-meta-color: inherit;
+
+	--kdna-flipbook-thumbs-bg: var( --kdna-flipbook-surface-bg );
+	--kdna-flipbook-thumb-width: 92px;
+	--kdna-flipbook-thumb-gap: 8px;
+	--kdna-flipbook-thumb-active: var( --kdna-flipbook-accent );
+	--kdna-flipbook-thumb-hover-bg: rgba( 128, 128, 128, 0.2 );
+
+	box-sizing: border-box;
+	width: 100%;
+	background: var( --kdna-flipbook-bg );
+}
+
+.kdna-flipbook *,
+.kdna-flipbook *::before,
+.kdna-flipbook *::after {
+	box-sizing: border-box;
+}
+
+/* Layout: sidebar beside the viewer on desktop, above it on mobile. */
+.kdna-flipbook__layout {
+	display: flex;
+	align-items: stretch;
+	gap: 20px;
+	width: 100%;
+}
+
+.kdna-flipbook__viewer {
+	position: relative;
+	width: 100%;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Sidebar. */
+.kdna-flipbook__sidebar {
+	flex: 0 0 var( --kdna-flipbook-sidebar-width );
+	max-width: var( --kdna-flipbook-sidebar-width );
+	background: var( --kdna-flipbook-sidebar-bg );
+	padding: var( --kdna-flipbook-sidebar-padding );
+	border-radius: 8px;
+	align-self: flex-start;
+}
+
+.kdna-flipbook__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var( --kdna-flipbook-item-gap );
+}
+
+.kdna-flipbook__list-item {
+	margin: 0;
+	padding: 0;
+}
+
+.kdna-flipbook__item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px 12px;
+	background: transparent;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	text-align: left;
+	color: var( --kdna-flipbook-item-color );
+	font: inherit;
+	line-height: 1.3;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.kdna-flipbook__item:hover,
+.kdna-flipbook__item:focus-visible {
+	background: var( --kdna-flipbook-item-hover-bg );
+	outline: none;
+}
+
+.kdna-flipbook__item.is-active {
+	background: var( --kdna-flipbook-item-active-bg );
+	color: var( --kdna-flipbook-item-active-color );
+	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.08 );
+}
+
+.kdna-flipbook__item-icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var( --kdna-flipbook-icon-size );
+	height: var( --kdna-flipbook-icon-size );
+	color: var( --kdna-flipbook-icon-color );
+}
+
+.kdna-flipbook__item.is-active .kdna-flipbook__item-icon {
+	color: var( --kdna-flipbook-item-active-color );
+}
+
+.kdna-flipbook__item-svg {
+	width: 100%;
+	height: 100%;
+}
+
+.kdna-flipbook__item-img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	border-radius: 3px;
+}
+
+.kdna-flipbook__item-name {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Stack the sidebar above the viewer on narrow screens. */
+@media ( max-width: 782px ) {
+	.kdna-flipbook__layout {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.kdna-flipbook__sidebar {
+		flex-basis: auto;
+		max-width: 100%;
+		width: 100%;
+	}
+
+	.kdna-flipbook__list {
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+
+	.kdna-flipbook__list-item {
+		flex: 1 1 auto;
+	}
+}
+
+.kdna-flipbook__stage {
+	width: 100%;
+	max-width: var( --kdna-flipbook-max-width );
+	margin: 0 auto;
+}
+
+.kdna-flipbook__book {
+	width: 100%;
+	margin: 0 auto;
+}
+
+/* Each PDF page. StPageFlip positions these, we only style their look. */
+.kdna-flipbook__page {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	background: var( --kdna-flipbook-page-bg );
+	border-radius: var( --kdna-flipbook-radius );
+}
+
+.kdna-flipbook__canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+/* Per-page spinner shown while a page renders. */
+.kdna-flipbook__page-spinner,
+.kdna-flipbook__spinner {
+	display: inline-block;
+	width: var( --kdna-flipbook-spinner-size );
+	height: var( --kdna-flipbook-spinner-size );
+	border: 3px solid rgba( 0, 0, 0, 0.12 );
+	border-top-color: var( --kdna-flipbook-spinner-color );
+	border-radius: 50%;
+	animation: kdna-flipbook-spin 0.8s linear infinite;
+}
+
+.kdna-flipbook__page-spinner {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin: calc( var( --kdna-flipbook-spinner-size ) / -2 ) 0 0 calc( var( --kdna-flipbook-spinner-size ) / -2 );
+}
+
+/* Zoom layer: a high-resolution render of the current page, pannable. */
+.kdna-flipbook__zoom {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	z-index: 10;
+	background: var( --kdna-flipbook-zoom-overlay-bg );
+	cursor: grab;
+	touch-action: none;
+}
+
+.kdna-flipbook__zoom.is-grabbing {
+	cursor: grabbing;
+}
+
+.kdna-flipbook__zoom[hidden] {
+	display: none;
+}
+
+.kdna-flipbook__zoom-canvas {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate( -50%, -50% );
+	transform-origin: center center;
+	will-change: transform;
+	max-width: none;
+}
+
+/* Toolbar. */
+.kdna-flipbook__toolbar {
+	position: absolute;
+	left: 50%;
+	bottom: 16px;
+	transform: translateX( -50% );
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px;
+	background: var( --kdna-flipbook-toolbar-bg );
+	color: var( --kdna-flipbook-toolbar-color );
+	border-radius: var( --kdna-flipbook-toolbar-radius );
+	box-shadow: 0 4px 16px rgba( 0, 0, 0, 0.25 );
+	z-index: 20;
+	max-width: calc( 100% - 24px );
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.kdna-flipbook__toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.kdna-flipbook__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var( --kdna-flipbook-btn-size );
+	height: var( --kdna-flipbook-btn-size );
+	padding: 0;
+	background: transparent;
+	color: inherit;
+	border: none;
+	border-radius: var( --kdna-flipbook-btn-radius );
+	cursor: pointer;
+	transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.kdna-flipbook__btn .kdna-flipbook__icon {
+	width: var( --kdna-flipbook-toolbar-icon-size );
+	height: var( --kdna-flipbook-toolbar-icon-size );
+}
+
+.kdna-flipbook__btn:hover,
+.kdna-flipbook__btn:focus-visible {
+	background: var( --kdna-flipbook-toolbar-hover-bg );
+	outline: none;
+}
+
+.kdna-flipbook__btn:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.kdna-flipbook__btn.is-active {
+	background: var( --kdna-flipbook-toolbar-hover-bg );
+}
+
+.kdna-flipbook__icon {
+	width: 20px;
+	height: 20px;
+	display: block;
+}
+
+.kdna-flipbook__toolbar-group + .kdna-flipbook__toolbar-group {
+	margin-left: 4px;
+	padding-left: 8px;
+	border-left: 1px solid currentColor;
+	border-left-color: rgba( 128, 128, 128, 0.35 );
+}
+
+.kdna-flipbook__zoom-level,
+.kdna-flipbook__page-count {
+	min-width: 46px;
+	padding: 0 4px;
+	text-align: center;
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+	user-select: none;
+	color: var( --kdna-flipbook-meta-color );
+}
+
+.kdna-flipbook__btn--sound.is-muted {
+	opacity: 0.7;
+}
+
+/* Chrome themes. */
+.kdna-flipbook--theme-light {
+	--kdna-flipbook-toolbar-bg: rgba( 255, 255, 255, 0.94 );
+	--kdna-flipbook-toolbar-color: #1d2327;
+	--kdna-flipbook-toolbar-hover-bg: rgba( 0, 0, 0, 0.06 );
+	--kdna-flipbook-accent: #2271b1;
+	--kdna-flipbook-surface-bg: #ffffff;
+	--kdna-flipbook-surface-color: #1d2327;
+}
+
+.kdna-flipbook--theme-dark {
+	--kdna-flipbook-toolbar-bg: rgba( 28, 30, 34, 0.92 );
+	--kdna-flipbook-toolbar-color: #ffffff;
+	--kdna-flipbook-toolbar-hover-bg: rgba( 255, 255, 255, 0.16 );
+	--kdna-flipbook-accent: #4aa3ff;
+	--kdna-flipbook-surface-bg: #23262b;
+	--kdna-flipbook-surface-color: #e8e8e8;
+}
+
+.kdna-flipbook--theme-custom {
+	--kdna-flipbook-toolbar-bg: var( --kdna-flipbook-chrome, #2271b1 );
+	--kdna-flipbook-toolbar-color: #ffffff;
+	--kdna-flipbook-toolbar-hover-bg: rgba( 255, 255, 255, 0.2 );
+	--kdna-flipbook-accent: var( --kdna-flipbook-chrome, #2271b1 );
+	--kdna-flipbook-surface-bg: #ffffff;
+	--kdna-flipbook-surface-color: #1d2327;
+}
+
+/* Fade-away toolbar. */
+.kdna-flipbook--toolbar-fade .kdna-flipbook__toolbar {
+	transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.kdna-flipbook--toolbar-fade.is-idle .kdna-flipbook__toolbar {
+	opacity: 0;
+	transform: translateX( -50% ) translateY( 8px );
+	pointer-events: none;
+}
+
+/* Thumbnails strip. */
+.kdna-flipbook__thumbs {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 72px;
+	z-index: 22;
+	padding: 8px;
+	background: var( --kdna-flipbook-thumbs-bg );
+	color: var( --kdna-flipbook-surface-color );
+	box-shadow: 0 -4px 16px rgba( 0, 0, 0, 0.18 );
+}
+
+.kdna-flipbook__thumbs[hidden] {
+	display: none;
+}
+
+.kdna-flipbook__thumbs-track {
+	display: flex;
+	gap: var( --kdna-flipbook-thumb-gap );
+	overflow-x: auto;
+	padding-bottom: 4px;
+}
+
+.kdna-flipbook__thumb {
+	position: relative;
+	flex: 0 0 auto;
+	width: var( --kdna-flipbook-thumb-width );
+	min-height: 60px;
+	padding: 0;
+	background: rgba( 128, 128, 128, 0.12 );
+	border: 2px solid transparent;
+	border-radius: 4px;
+	cursor: pointer;
+	overflow: hidden;
+}
+
+.kdna-flipbook__thumb:hover {
+	background: var( --kdna-flipbook-thumb-hover-bg );
+}
+
+.kdna-flipbook__thumb.is-active {
+	border-color: var( --kdna-flipbook-thumb-active );
+}
+
+.kdna-flipbook__thumb-canvas {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.kdna-flipbook__thumb-num {
+	position: absolute;
+	bottom: 2px;
+	right: 3px;
+	padding: 0 4px;
+	font-size: 11px;
+	line-height: 1.5;
+	color: #fff;
+	background: rgba( 0, 0, 0, 0.55 );
+	border-radius: 3px;
+}
+
+/* Table of contents panel. */
+.kdna-flipbook__toc {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	bottom: 72px;
+	width: min( 320px, 70% );
+	z-index: 22;
+	display: flex;
+	flex-direction: column;
+	background: var( --kdna-flipbook-surface-bg );
+	color: var( --kdna-flipbook-surface-color );
+	border-radius: 8px;
+	box-shadow: 0 6px 20px rgba( 0, 0, 0, 0.22 );
+	overflow: hidden;
+}
+
+.kdna-flipbook__toc[hidden] {
+	display: none;
+}
+
+.kdna-flipbook__toc-head {
+	padding: 12px 16px;
+	font-weight: 600;
+	border-bottom: 1px solid rgba( 128, 128, 128, 0.25 );
+}
+
+.kdna-flipbook__toc-body {
+	overflow-y: auto;
+	padding: 8px 8px 12px;
+}
+
+.kdna-flipbook__toc-list {
+	list-style: none;
+	margin: 0;
+	padding: 0 0 0 8px;
+}
+
+.kdna-flipbook__toc-list .kdna-flipbook__toc-list {
+	padding-left: 14px;
+}
+
+.kdna-flipbook__toc-link {
+	display: block;
+	width: 100%;
+	padding: 6px 8px;
+	text-align: left;
+	background: transparent;
+	border: none;
+	border-radius: 4px;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.kdna-flipbook__toc-link:hover,
+.kdna-flipbook__toc-link:focus-visible {
+	background: rgba( 128, 128, 128, 0.15 );
+	outline: none;
+}
+
+.kdna-flipbook__toc-empty {
+	margin: 8px;
+	color: inherit;
+	opacity: 0.7;
+}
+
+/* Toast. */
+.kdna-flipbook__toast {
+	position: absolute;
+	top: 16px;
+	left: 50%;
+	transform: translateX( -50% ) translateY( -6px );
+	z-index: 41;
+	padding: 8px 14px;
+	background: rgba( 20, 20, 22, 0.9 );
+	color: #fff;
+	border-radius: 6px;
+	font-size: 13px;
+	opacity: 0;
+	transition: opacity 0.2s ease, transform 0.2s ease;
+	pointer-events: none;
+}
+
+.kdna-flipbook__toast.is-visible {
+	opacity: 1;
+	transform: translateX( -50% ) translateY( 0 );
+}
+
+.kdna-flipbook__toast[hidden] {
+	display: none;
+}
+
+/* Access code box. Custom properties become widget style controls in Stage 8. */
+.kdna-flipbook-gate {
+	--kdna-flipbook-gate-bg: #f6f7f9;
+	--kdna-flipbook-gate-color: #1d2327;
+	--kdna-flipbook-gate-radius: 12px;
+	--kdna-flipbook-gate-accent: #2271b1;
+	--kdna-flipbook-gate-input-bg: #ffffff;
+	--kdna-flipbook-gate-input-border: #c3c4c7;
+	--kdna-flipbook-gate-button-bg: #2271b1;
+	--kdna-flipbook-gate-button-color: #ffffff;
+	--kdna-flipbook-gate-button-hover-bg: #135e96;
+	--kdna-flipbook-gate-error-color: #b32d2e;
+
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 320px;
+	padding: 32px 20px;
+	background: var( --kdna-flipbook-gate-bg );
+	color: var( --kdna-flipbook-gate-color );
+	border-radius: var( --kdna-flipbook-gate-radius );
+}
+
+.kdna-flipbook-gate.kdna-flipbook--theme-custom {
+	--kdna-flipbook-gate-accent: var( --kdna-flipbook-chrome, #2271b1 );
+	--kdna-flipbook-gate-button-bg: var( --kdna-flipbook-chrome, #2271b1 );
+}
+
+.kdna-flipbook-gate *,
+.kdna-flipbook-gate *::before,
+.kdna-flipbook-gate *::after {
+	box-sizing: border-box;
+}
+
+.kdna-flipbook-gate__form {
+	width: 100%;
+	max-width: 380px;
+	text-align: center;
+}
+
+.kdna-flipbook-gate__icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	margin: 0 auto 12px;
+	color: var( --kdna-flipbook-gate-accent );
+}
+
+.kdna-flipbook-gate__icon .kdna-flipbook__icon {
+	width: 32px;
+	height: 32px;
+}
+
+.kdna-flipbook-gate__heading {
+	margin: 0 0 6px;
+	font-size: 20px;
+	line-height: 1.3;
+	color: inherit;
+}
+
+.kdna-flipbook-gate__help {
+	margin: 0 0 18px;
+	opacity: 0.8;
+}
+
+.kdna-flipbook-gate__row {
+	display: flex;
+	gap: 8px;
+	justify-content: center;
+	flex-wrap: wrap;
+}
+
+.kdna-flipbook-gate__input {
+	flex: 1 1 180px;
+	min-width: 0;
+	padding: 10px 12px;
+	background: var( --kdna-flipbook-gate-input-bg );
+	color: var( --kdna-flipbook-gate-color );
+	border: 1px solid var( --kdna-flipbook-gate-input-border );
+	border-radius: 6px;
+	font-size: 15px;
+}
+
+.kdna-flipbook-gate__input:focus {
+	outline: 2px solid var( --kdna-flipbook-gate-accent );
+	outline-offset: 1px;
+	border-color: var( --kdna-flipbook-gate-accent );
+}
+
+.kdna-flipbook-gate__submit {
+	flex: 0 0 auto;
+	padding: 10px 20px;
+	background: var( --kdna-flipbook-gate-button-bg );
+	color: var( --kdna-flipbook-gate-button-color );
+	border: none;
+	border-radius: 6px;
+	font-size: 15px;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.kdna-flipbook-gate__submit:hover,
+.kdna-flipbook-gate__submit:focus-visible {
+	background: var( --kdna-flipbook-gate-button-hover-bg );
+	outline: none;
+}
+
+.kdna-flipbook-gate__submit:disabled {
+	opacity: 0.7;
+	cursor: default;
+}
+
+.kdna-flipbook-gate__error {
+	margin-top: 12px;
+	color: var( --kdna-flipbook-gate-error-color );
+	font-size: 14px;
+}
+
+.kdna-flipbook-gate__error[hidden] {
+	display: none;
+}
+
+/* Fullscreen: the viewer becomes the fullscreen element and fills the screen. */
+.kdna-flipbook__viewer:fullscreen {
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var( --kdna-flipbook-fullscreen-bg );
+}
+
+.kdna-flipbook__viewer:-webkit-full-screen {
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var( --kdna-flipbook-fullscreen-bg );
+}
+
+.kdna-flipbook__viewer:fullscreen .kdna-flipbook__stage,
+.kdna-flipbook__viewer:-webkit-full-screen .kdna-flipbook__stage {
+	max-width: min( 96vw, 1600px );
+}
+
+/* Full-viewer loading overlay for the initial load. */
+.kdna-flipbook__overlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba( 255, 255, 255, 0.6 );
+	z-index: 30;
+}
+
+.kdna-flipbook__message {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	text-align: center;
+	color: #b32d2e;
+	background: rgba( 255, 255, 255, 0.92 );
+	z-index: 40;
+}
+
+.kdna-flipbook__message[hidden] {
+	display: none;
+}
+
+.kdna-flipbook__notice {
+	margin: 0;
+	padding: 24px;
+	text-align: center;
+	color: #646970;
+	background: #f6f7f7;
+	border: 1px dashed #c3c4c7;
+	border-radius: 8px;
+}
+
+@keyframes kdna-flipbook-spin {
+	to {
+		transform: rotate( 360deg );
+	}
+}
+
+/* Respect reduced-motion by slowing the spinner rather than spinning fast. */
+@media ( prefers-reduced-motion: reduce ) {
+	.kdna-flipbook__page-spinner,
+	.kdna-flipbook__spinner {
+		animation-duration: 2s;
+	}
+}

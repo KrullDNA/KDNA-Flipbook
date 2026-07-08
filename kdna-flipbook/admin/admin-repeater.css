@@ -1,0 +1,167 @@
+/**
+ * KDNA PDF Flipbook: admin repeater styles.
+ *
+ * Keeps the Flipbooks metabox clear and easy for a non-technical client. Scoped
+ * to the kdna-flipbook- prefix so nothing leaks into the rest of the admin.
+ */
+
+.kdna-flipbook-repeater__intro {
+	margin: 0 0 12px;
+	color: #50575e;
+}
+
+.kdna-flipbook-rows {
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+}
+
+.kdna-flipbook-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin: 0 0 10px;
+	padding: 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	box-shadow: 0 1px 1px rgba( 0, 0, 0, 0.04 );
+}
+
+.kdna-flipbook-row--placeholder {
+	border: 1px dashed #2271b1;
+	background: #f0f6fc;
+	border-radius: 6px;
+	margin: 0 0 10px;
+	min-height: 96px;
+}
+
+.kdna-flipbook-row__handle {
+	cursor: grab;
+	color: #a7aaad;
+	padding-top: 4px;
+	flex: 0 0 auto;
+}
+
+.kdna-flipbook-row__handle:hover {
+	color: #2271b1;
+}
+
+.kdna-flipbook-row__body {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.kdna-flipbook-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+.kdna-flipbook-field--name {
+	flex: 1 1 220px;
+}
+
+.kdna-flipbook-field--pdf {
+	flex: 1 1 220px;
+}
+
+.kdna-flipbook-field--icon {
+	flex: 0 1 160px;
+}
+
+.kdna-flipbook-field__label {
+	font-weight: 600;
+	font-size: 12px;
+	color: #1d2327;
+}
+
+.kdna-flipbook-field--name .kdna-flipbook-field__label {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-weight: 600;
+}
+
+.kdna-flipbook-input-name {
+	font-weight: 400;
+}
+
+.kdna-flipbook-pdf-name {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	font-size: 13px;
+	max-width: 100%;
+}
+
+.kdna-flipbook-pdf-name .dashicons {
+	color: #d63638;
+	flex: 0 0 auto;
+}
+
+.kdna-flipbook-pdf-name__text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.kdna-flipbook-icon-preview img {
+	display: block;
+	width: 48px;
+	height: 48px;
+	object-fit: contain;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+	padding: 2px;
+}
+
+.kdna-flipbook-field .button,
+.kdna-flipbook-field .button-link {
+	align-self: flex-start;
+}
+
+.kdna-flipbook-remove-pdf,
+.kdna-flipbook-remove-icon {
+	color: #b32d2e;
+}
+
+.kdna-flipbook-row__remove {
+	flex: 0 0 auto;
+	color: #b32d2e;
+	padding: 4px;
+	cursor: pointer;
+	background: none;
+	border: none;
+}
+
+.kdna-flipbook-row__remove:hover {
+	color: #d63638;
+}
+
+.kdna-flipbook-repeater__actions {
+	margin: 0 0 8px;
+}
+
+.kdna-flipbook-repeater__actions .button .dashicons {
+	vertical-align: text-bottom;
+}
+
+.kdna-flipbook-empty {
+	margin: 0;
+	padding: 16px;
+	text-align: center;
+	color: #646970;
+	background: #f6f7f7;
+	border: 1px dashed #c3c4c7;
+	border-radius: 6px;
+}
