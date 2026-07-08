@@ -1,0 +1,119 @@
+/**
+ * KDNA PDF Flipbook: front-end base and responsive styles.
+ *
+ * Scoped to the kdna-flipbook- prefix. Custom properties give later stages a
+ * clean place to hang Elementor style controls without touching this file.
+ */
+
+.kdna-flipbook {
+	--kdna-flipbook-bg: transparent;
+	--kdna-flipbook-page-bg: #ffffff;
+	--kdna-flipbook-spinner-color: #2271b1;
+	--kdna-flipbook-spinner-size: 40px;
+	--kdna-flipbook-radius: 2px;
+	--kdna-flipbook-max-width: 1100px;
+
+	box-sizing: border-box;
+	width: 100%;
+	background: var( --kdna-flipbook-bg );
+}
+
+.kdna-flipbook *,
+.kdna-flipbook *::before,
+.kdna-flipbook *::after {
+	box-sizing: border-box;
+}
+
+.kdna-flipbook__viewer {
+	position: relative;
+	width: 100%;
+}
+
+.kdna-flipbook__stage {
+	width: 100%;
+	max-width: var( --kdna-flipbook-max-width );
+	margin: 0 auto;
+}
+
+.kdna-flipbook__book {
+	width: 100%;
+	margin: 0 auto;
+}
+
+/* Each PDF page. StPageFlip positions these, we only style their look. */
+.kdna-flipbook__page {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	background: var( --kdna-flipbook-page-bg );
+	border-radius: var( --kdna-flipbook-radius );
+}
+
+.kdna-flipbook__canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+/* Per-page spinner shown while a page renders. */
+.kdna-flipbook__page-spinner,
+.kdna-flipbook__spinner {
+	display: inline-block;
+	width: var( --kdna-flipbook-spinner-size );
+	height: var( --kdna-flipbook-spinner-size );
+	border: 3px solid rgba( 0, 0, 0, 0.12 );
+	border-top-color: var( --kdna-flipbook-spinner-color );
+	border-radius: 50%;
+	animation: kdna-flipbook-spin 0.8s linear infinite;
+}
+
+.kdna-flipbook__page-spinner {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin: calc( var( --kdna-flipbook-spinner-size ) / -2 ) 0 0 calc( var( --kdna-flipbook-spinner-size ) / -2 );
+}
+
+/* Full-viewer loading overlay for the initial load. */
+.kdna-flipbook__overlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba( 255, 255, 255, 0.6 );
+	z-index: 5;
+}
+
+.kdna-flipbook__message {
+	padding: 24px;
+	text-align: center;
+	color: #b32d2e;
+}
+
+.kdna-flipbook__temp-note {
+	margin: 16px 0 8px;
+	padding: 8px 12px;
+	font-size: 13px;
+	color: #646970;
+	background: #f6f7f7;
+	border: 1px dashed #c3c4c7;
+	border-radius: 4px;
+}
+
+@keyframes kdna-flipbook-spin {
+	to {
+		transform: rotate( 360deg );
+	}
+}
+
+/* Respect reduced-motion by slowing the spinner rather than spinning fast. */
+@media ( prefers-reduced-motion: reduce ) {
+	.kdna-flipbook__page-spinner,
+	.kdna-flipbook__spinner {
+		animation-duration: 2s;
+	}
+}

@@ -47,6 +47,13 @@ final class Kdna_Flipbook {
 	public $meta;
 
 	/**
+	 * Assets handler.
+	 *
+	 * @var Kdna_Flipbook_Assets
+	 */
+	public $assets;
+
+	/**
 	 * Return the shared instance, creating it on first call.
 	 *
 	 * @return Kdna_Flipbook
@@ -75,6 +82,7 @@ final class Kdna_Flipbook {
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-settings.php';
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-cpt.php';
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-meta.php';
+		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-assets.php';
 	}
 
 	/**
@@ -84,6 +92,7 @@ final class Kdna_Flipbook {
 		$this->settings = new Kdna_Flipbook_Settings();
 		$this->cpt      = new Kdna_Flipbook_Cpt();
 		$this->meta     = new Kdna_Flipbook_Meta();
+		$this->assets   = new Kdna_Flipbook_Assets();
 
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 	}
