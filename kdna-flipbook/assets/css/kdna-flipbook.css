@@ -393,9 +393,16 @@
 	pointer-events: none;
 }
 
-/* Toolbar placed below the flipbook, in normal flow, never over the document.
-   Shrinks to its buttons and centres, rather than filling the width. */
-.kdna-flipbook--toolbar-pos-below .kdna-flipbook__toolbar {
+/* Toolbar placed above or below the flipbook, in normal flow, never over the
+   document. Shrinks to its buttons and centres, rather than filling the width. */
+.kdna-flipbook--toolbar-pos-below .kdna-flipbook__viewer,
+.kdna-flipbook--toolbar-pos-above .kdna-flipbook__viewer {
+	display: flex;
+	flex-direction: column;
+}
+
+.kdna-flipbook--toolbar-pos-below .kdna-flipbook__toolbar,
+.kdna-flipbook--toolbar-pos-above .kdna-flipbook__toolbar {
 	position: static;
 	left: auto;
 	bottom: auto;
@@ -403,7 +410,16 @@
 	width: -moz-fit-content;
 	width: fit-content;
 	max-width: 100%;
+}
+
+.kdna-flipbook--toolbar-pos-below .kdna-flipbook__toolbar {
 	margin: 14px auto 0;
+}
+
+/* Above the flipbook: order it before the book and space it from the book. */
+.kdna-flipbook--toolbar-pos-above .kdna-flipbook__toolbar {
+	order: -1;
+	margin: 0 auto 14px;
 }
 
 /* Reader hint. */

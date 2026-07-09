@@ -353,6 +353,7 @@ class Kdna_Flipbook_Settings {
 		echo '<select name="' . esc_attr( $name ) . '[toolbar_position]">';
 		foreach ( array(
 			'over'  => __( 'Over the document', 'kdna-flipbook' ),
+			'above' => __( 'Above the flipbook', 'kdna-flipbook' ),
 			'below' => __( 'Below the flipbook', 'kdna-flipbook' ),
 		) as $value => $label ) {
 			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $config['toolbar_position'], $value, false ), esc_html( $label ) );
@@ -490,7 +491,7 @@ class Kdna_Flipbook_Settings {
 		$clean['toolbar_behaviour'] = in_array( $behaviour, array( 'fade', 'persistent' ), true ) ? $behaviour : $defaults['toolbar_behaviour'];
 
 		$position                  = isset( $input['toolbar_position'] ) ? sanitize_key( $input['toolbar_position'] ) : '';
-		$clean['toolbar_position'] = in_array( $position, array( 'over', 'below' ), true ) ? $position : $defaults['toolbar_position'];
+		$clean['toolbar_position'] = in_array( $position, array( 'over', 'below', 'above' ), true ) ? $position : $defaults['toolbar_position'];
 
 		$hint_position          = isset( $input['hint_position'] ) ? sanitize_key( $input['hint_position'] ) : '';
 		$clean['hint_position'] = in_array( $hint_position, array( 'sidebar', 'below' ), true ) ? $hint_position : $defaults['hint_position'];

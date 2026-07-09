@@ -426,6 +426,7 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 				'default' => 'over',
 				'options' => array(
 					'over'  => __( 'Over the document', 'kdna-flipbook' ),
+					'above' => __( 'Above the flipbook', 'kdna-flipbook' ),
 					'below' => __( 'Below the flipbook', 'kdna-flipbook' ),
 				),
 			)
