@@ -264,6 +264,21 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 			);
 		}
 
+		$this->add_control(
+			'wheel_zoom',
+			array(
+				'label'        => __( 'Zoom with the mouse wheel', 'kdna-flipbook' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => __( 'On', 'kdna-flipbook' ),
+				'label_off'    => __( 'Off', 'kdna-flipbook' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'separator'    => 'before',
+				'description'  => __( 'Off by default, so scrolling over the flipbook scrolls the page. The zoom buttons and pinch on mobile still work.', 'kdna-flipbook' ),
+				'condition'    => array( 'ctrl_zoom' => 'yes' ),
+			)
+		);
+
 		$this->end_controls_section();
 	}
 
@@ -1354,6 +1369,7 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 			'arrows'            => 'yes' === $settings['ctrl_arrows'],
 			'thumbnails'        => 'yes' === $settings['ctrl_thumbnails'],
 			'zoom'              => 'yes' === $settings['ctrl_zoom'],
+			'wheel_zoom'        => 'yes' === $settings['wheel_zoom'],
 			'fullscreen'        => 'yes' === $settings['ctrl_fullscreen'],
 			'toc'               => 'yes' === $settings['ctrl_toc'],
 			'download'          => 'yes' === $settings['ctrl_download'],

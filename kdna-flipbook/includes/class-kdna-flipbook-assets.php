@@ -303,6 +303,7 @@ class Kdna_Flipbook_Assets {
 				'deeplink'   => ! empty( $config['deeplink'] ),
 			),
 			'behaviour' => $behaviour,
+			'wheelZoom' => ! empty( $config['wheel_zoom'] ),
 			'autoplay'  => ! empty( $config['autoplay'] ),
 			'autoplayDelay' => max( 1, (int) $config['autoplay_delay'] ),
 			'start'     => array(

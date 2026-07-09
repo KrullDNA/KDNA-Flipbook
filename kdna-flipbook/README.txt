@@ -4,7 +4,7 @@ Tags: pdf, flipbook, elementor, viewer, pdf.js
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,9 @@ No. PDF.js and StPageFlip are bundled inside the plugin, and PDFs are served fro
 The front-end viewer is delivered as an Elementor widget, so Elementor is required to place it on your client template.
 
 == Changelog ==
+
+= 1.0.7 =
+* Mouse wheel zoom is now off by default, so scrolling over the flipbook scrolls the page. It can be turned back on per widget or in the settings. The zoom buttons and pinch on mobile are unchanged.
 
 = 1.0.6 =
 * Sidebar icons can now be chosen from Elementor's own icon library on the widget, so Font Awesome and any registered icon packs are available. Widget icons apply to the flipbooks in order and override the icon set on the client entry.
