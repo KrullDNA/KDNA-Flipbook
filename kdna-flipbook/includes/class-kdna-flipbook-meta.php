@@ -118,7 +118,7 @@ class Kdna_Flipbook_Meta {
 		?>
 		<div class="kdna-flipbook-repeater" id="kdna-flipbook-repeater">
 			<p class="kdna-flipbook-repeater__intro">
-				<?php esc_html_e( 'Add each PDF you want to show on this page. Drag the rows by the handle to change their order. The first row appears first.', 'kdna-flipbook' ); ?>
+				<?php esc_html_e( 'Add each PDF you want to show on this page. Drag the rows by the handle to change their order. The first row appears first. Sidebar icons are set on the KDNA PDF Flipbook widget in Elementor.', 'kdna-flipbook' ); ?>
 			</p>
 
 			<ul class="kdna-flipbook-rows" id="kdna-flipbook-rows">
@@ -212,36 +212,9 @@ class Kdna_Flipbook_Meta {
 					<button type="button" class="button-link kdna-flipbook-remove-pdf" <?php echo $has_pdf ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove', 'kdna-flipbook' ); ?></button>
 				</span>
 
-				<span class="kdna-flipbook-field kdna-flipbook-field--icon">
-					<span class="kdna-flipbook-field__label"><?php esc_html_e( 'Icon (optional)', 'kdna-flipbook' ); ?></span>
-					<input type="hidden" class="kdna-flipbook-input-icon-id" name="<?php echo esc_attr( $field ); ?>[icon_id]" value="<?php echo esc_attr( $icon_id ); ?>" />
-					<input type="hidden" class="kdna-flipbook-input-icon-key" name="<?php echo esc_attr( $field ); ?>[icon_key]" value="<?php echo esc_attr( $icon_key ); ?>" />
-					<span class="kdna-flipbook-icon-preview" <?php echo $has_icon ? '' : 'style="display:none;"'; ?>>
-						<?php
-						if ( $has_upload ) {
-							echo '<img src="' . esc_url( $icon_url ) . '" alt="" />';
-						} elseif ( $has_builtin ) {
-							echo Kdna_Flipbook_Assets::builtin_icon_svg( $icon_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static, safe inline SVG.
-						}
-						?>
-					</span>
-					<button type="button" class="button kdna-flipbook-toggle-iconpicker" aria-expanded="false"><?php echo $has_icon ? esc_html__( 'Change icon', 'kdna-flipbook' ) : esc_html__( 'Choose icon', 'kdna-flipbook' ); ?></button>
-					<button type="button" class="button-link kdna-flipbook-remove-icon" <?php echo $has_icon ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove', 'kdna-flipbook' ); ?></button>
-
-					<span class="kdna-flipbook-iconpicker" hidden>
-						<span class="kdna-flipbook-iconpicker__label"><?php esc_html_e( 'Choose a built-in icon', 'kdna-flipbook' ); ?></span>
-						<span class="kdna-flipbook-iconpicker__grid">
-							<?php foreach ( Kdna_Flipbook_Assets::builtin_icons() as $icon_slug => $icon_paths ) : ?>
-								<button type="button" class="kdna-flipbook-iconpick<?php echo $icon_slug === $icon_key ? ' is-selected' : ''; ?>" data-icon="<?php echo esc_attr( $icon_slug ); ?>" title="<?php echo esc_attr( $icon_slug ); ?>">
-									<?php echo Kdna_Flipbook_Assets::builtin_icon_svg( $icon_slug ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static, safe inline SVG. ?>
-								</button>
-							<?php endforeach; ?>
-						</span>
-						<span class="kdna-flipbook-iconpicker__upload">
-							<button type="button" class="button kdna-flipbook-choose-icon"><?php esc_html_e( 'Upload SVG or image', 'kdna-flipbook' ); ?></button>
-						</span>
-					</span>
-				</span>
+				<?php // Sidebar icons are set on the KDNA PDF Flipbook widget in Elementor. These keep any previously saved values. ?>
+				<input type="hidden" class="kdna-flipbook-input-icon-id" name="<?php echo esc_attr( $field ); ?>[icon_id]" value="<?php echo esc_attr( $icon_id ); ?>" />
+				<input type="hidden" class="kdna-flipbook-input-icon-key" name="<?php echo esc_attr( $field ); ?>[icon_key]" value="<?php echo esc_attr( $icon_key ); ?>" />
 
 				<input type="hidden" class="kdna-flipbook-input-sort" name="<?php echo esc_attr( $field ); ?>[sort]" value="<?php echo esc_attr( $sort ); ?>" />
 			</span>

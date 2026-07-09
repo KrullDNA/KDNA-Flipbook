@@ -20,7 +20,8 @@
 	--kdna-flipbook-item-color: #1d2327;
 	--kdna-flipbook-item-hover-bg: #eceef1;
 	--kdna-flipbook-item-active-bg: #ffffff;
-	--kdna-flipbook-item-active-color: #2271b1;
+	/* Active colour is intentionally unset, so it falls back to the item and icon
+	   colours unless the Active controls are given a value. */
 	--kdna-flipbook-icon-color: #646970;
 	--kdna-flipbook-icon-size: 24px;
 
@@ -120,7 +121,7 @@
 
 .kdna-flipbook__item.is-active {
 	background: var( --kdna-flipbook-item-active-bg );
-	color: var( --kdna-flipbook-item-active-color );
+	color: var( --kdna-flipbook-item-active-color, var( --kdna-flipbook-item-color ) );
 	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.08 );
 }
 
@@ -135,7 +136,7 @@
 }
 
 .kdna-flipbook__item.is-active .kdna-flipbook__item-icon {
-	color: var( --kdna-flipbook-item-active-color );
+	color: var( --kdna-flipbook-item-active-color, var( --kdna-flipbook-icon-color ) );
 }
 
 .kdna-flipbook__item-svg,
@@ -421,7 +422,7 @@
 .kdna-flipbook__sidebar .kdna-flipbook__hint {
 	margin: 0 0 10px;
 	padding: 2px 4px 10px;
-	border-bottom: 1px solid rgba( 128, 128, 128, 0.2 );
+	border-bottom: var( --kdna-flipbook-hint-divider-width, 1px ) solid var( --kdna-flipbook-hint-divider-color, rgba( 128, 128, 128, 0.2 ) );
 }
 
 /* Thumbnails strip. */

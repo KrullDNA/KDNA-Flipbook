@@ -344,6 +344,19 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		$this->add_control(
+			'sidebar_icons_same',
+			array(
+				'label'        => __( 'Use the first icon for all flipbooks', 'kdna-flipbook' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => __( 'Yes', 'kdna-flipbook' ),
+				'label_off'    => __( 'No', 'kdna-flipbook' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'description'  => __( 'When on, the icon in the first row is used for every flipbook, so you only need to set one.', 'kdna-flipbook' ),
+			)
+		);
+
 		$repeater = new \Elementor\Repeater();
 
 		$repeater->add_control(
@@ -783,10 +796,64 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 		$this->add_control(
 			'sidebar_divider_color',
 			array(
-				'label'     => __( 'Divider colour', 'kdna-flipbook' ),
+				'label'       => __( 'Divider colour', 'kdna-flipbook' ),
+				'type'        => \Elementor\Controls_Manager::COLOR,
+				'description' => __( 'Dividers appear between flipbooks, so they need at least two flipbooks to show.', 'kdna-flipbook' ),
+				'selectors'   => array(
+					'{{WRAPPER}} .kdna-flipbook__list-item:not(:last-child)' => 'border-bottom-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'sidebar_hint_heading',
+			array(
+				'label'     => __( 'Hint above the list', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'hint_color',
+			array(
+				'label'     => __( 'Hint text colour', 'kdna-flipbook' ),
 				'type'      => \Elementor\Controls_Manager::COLOR,
 				'selectors' => array(
-					'{{WRAPPER}} .kdna-flipbook__list-item:not(:last-child)' => 'border-bottom-color: {{VALUE}};',
+					'{{WRAPPER}} .kdna-flipbook' => '--kdna-flipbook-hint-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'hint_typography',
+				'label'    => __( 'Hint typography', 'kdna-flipbook' ),
+				'selector' => '{{WRAPPER}} .kdna-flipbook__hint',
+			)
+		);
+
+		$this->add_control(
+			'hint_divider_color',
+			array(
+				'label'     => __( 'Hint divider colour', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .kdna-flipbook' => '--kdna-flipbook-hint-divider-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'hint_divider_width',
+			array(
+				'label'      => __( 'Hint divider width', 'kdna-flipbook' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 6 ) ),
+				'selectors'  => array(
+					'{{WRAPPER}} .kdna-flipbook' => '--kdna-flipbook-hint-divider-width: {{SIZE}}{{UNIT}};',
 				),
 			)
 		);
@@ -1038,34 +1105,6 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 			array(
 				'name'     => 'meta_typography',
 				'selector' => '{{WRAPPER}} .kdna-flipbook__page-count, {{WRAPPER}} .kdna-flipbook__zoom-level',
-			)
-		);
-
-		$this->add_control(
-			'hint_heading',
-			array(
-				'label'     => __( 'Reader hint', 'kdna-flipbook' ),
-				'type'      => \Elementor\Controls_Manager::HEADING,
-				'separator' => 'before',
-			)
-		);
-
-		$this->add_control(
-			'hint_color',
-			array(
-				'label'     => __( 'Hint colour', 'kdna-flipbook' ),
-				'type'      => \Elementor\Controls_Manager::COLOR,
-				'selectors' => array(
-					'{{WRAPPER}} .kdna-flipbook' => '--kdna-flipbook-hint-color: {{VALUE}};',
-				),
-			)
-		);
-
-		$this->add_group_control(
-			\Elementor\Group_Control_Typography::get_type(),
-			array(
-				'name'     => 'hint_typography',
-				'selector' => '{{WRAPPER}} .kdna-flipbook__hint',
 			)
 		);
 
@@ -1354,11 +1393,23 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 
 		// Overlay Elementor icons chosen on the widget, applied to flipbooks in order.
 		$widget_icons = ( isset( $settings['sidebar_icons'] ) && is_array( $settings['sidebar_icons'] ) ) ? array_values( $settings['sidebar_icons'] ) : array();
-		foreach ( $flipbooks as $i => $flipbook ) {
-			if ( isset( $widget_icons[ $i ]['icon'] ) ) {
-				$icon_html = $this->render_icon_html( $widget_icons[ $i ]['icon'] );
-				if ( '' !== $icon_html ) {
+		$same_icon    = isset( $settings['sidebar_icons_same'] ) && 'yes' === $settings['sidebar_icons_same'];
+
+		if ( $same_icon && isset( $widget_icons[0]['icon'] ) ) {
+			// One icon for every flipbook.
+			$icon_html = $this->render_icon_html( $widget_icons[0]['icon'] );
+			if ( '' !== $icon_html ) {
+				foreach ( $flipbooks as $i => $flipbook ) {
 					$flipbooks[ $i ]['icon_html'] = $icon_html;
+				}
+			}
+		} else {
+			foreach ( $flipbooks as $i => $flipbook ) {
+				if ( isset( $widget_icons[ $i ]['icon'] ) ) {
+					$icon_html = $this->render_icon_html( $widget_icons[ $i ]['icon'] );
+					if ( '' !== $icon_html ) {
+						$flipbooks[ $i ]['icon_html'] = $icon_html;
+					}
 				}
 			}
 		}
