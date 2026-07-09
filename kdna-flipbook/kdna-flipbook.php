@@ -3,7 +3,7 @@
  * Plugin Name:       KDNA PDF Flipbook
  * Plugin URI:        https://krulldna.com/
  * Description:       A self-contained PDF-to-flipbook plugin with a fully styleable Elementor widget. Turns a PDF uploaded in the backend into a responsive, page-flipping viewer on the front end.
- * Version:           1.0.5
+ * Version:           1.0.6
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Krull Design & Advertising (KDNA)
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Core plugin constants.
-define( 'KDNA_FLIPBOOK_VERSION', '1.0.5' );
+define( 'KDNA_FLIPBOOK_VERSION', '1.0.6' );
 define( 'KDNA_FLIPBOOK_FILE', __FILE__ );
 define( 'KDNA_FLIPBOOK_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KDNA_FLIPBOOK_URL', plugin_dir_url( __FILE__ ) );

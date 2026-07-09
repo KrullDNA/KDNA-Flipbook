@@ -138,9 +138,17 @@
 	color: var( --kdna-flipbook-item-active-color );
 }
 
-.kdna-flipbook__item-svg {
+.kdna-flipbook__item-svg,
+.kdna-flipbook__item-icon > svg {
 	width: 100%;
 	height: 100%;
+}
+
+/* Elementor font icons chosen on the widget. */
+.kdna-flipbook__item-icon > i {
+	font-size: var( --kdna-flipbook-icon-size );
+	line-height: 1;
+	color: inherit;
 }
 
 .kdna-flipbook__item-img {
