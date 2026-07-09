@@ -752,6 +752,17 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 		);
 
 		$this->add_control(
+			'sidebar_active_icon_color',
+			array(
+				'label'     => __( 'Active icon colour', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .kdna-flipbook__item.is-active .kdna-flipbook__item-icon' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
 			'sidebar_hover_heading',
 			array(
 				'label'     => __( 'Hover', 'kdna-flipbook' ),
@@ -778,6 +789,17 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 				'type'      => \Elementor\Controls_Manager::COLOR,
 				'selectors' => array(
 					'{{WRAPPER}} .kdna-flipbook__item:hover' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'sidebar_hover_icon_color',
+			array(
+				'label'     => __( 'Hover icon colour', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .kdna-flipbook__item:hover .kdna-flipbook__item-icon' => 'color: {{VALUE}};',
 				),
 			)
 		);

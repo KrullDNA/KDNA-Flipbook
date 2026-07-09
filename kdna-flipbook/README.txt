@@ -4,7 +4,7 @@ Tags: pdf, flipbook, elementor, viewer, pdf.js
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.9
+Stable tag: 1.0.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,10 @@ No. PDF.js and StPageFlip are bundled inside the plugin, and PDFs are served fro
 The front-end viewer is delivered as an Elementor widget, so Elementor is required to place it on your client template.
 
 == Changelog ==
+
+= 1.0.10 =
+* Fixed switching flipbooks: clicking another flipbook in the sidebar now loads it, rather than showing a blank viewer. The viewer rebuilds on a clean element each time.
+* Added sidebar icon hover and active colour controls.
 
 = 1.0.9 =
 * Added an Item background style control for the normal sidebar item state, to sit alongside the active and hover backgrounds.

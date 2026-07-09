@@ -317,7 +317,16 @@
 		this.numPages = 0;
 		this.pageEls = [];
 		this.rendered = {};
-		if ( this.book ) {
+
+		// Replace the book element with a clean one. Re-initialising StPageFlip on
+		// the same element after destroy can leave stale wrapper styles behind,
+		// which makes the next flipbook render blank when switching.
+		if ( this.book && this.book.parentNode ) {
+			var fresh = document.createElement( 'div' );
+			fresh.className = 'kdna-flipbook__book';
+			this.book.parentNode.replaceChild( fresh, this.book );
+			this.book = fresh;
+		} else if ( this.book ) {
 			this.book.innerHTML = '';
 		}
 	};
