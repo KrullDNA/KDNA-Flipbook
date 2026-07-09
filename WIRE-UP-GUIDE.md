@@ -11,7 +11,7 @@ plugin, so nothing loads from an outside server.
 
 ## 1. Install and activate
 
-1. Go to **Plugins, Add New, Upload Plugin** and upload `kdna-flipbook-v1.0.7.zip`.
+1. Go to **Plugins, Add New, Upload Plugin** and upload `kdna-flipbook-v1.0.12.zip`.
 2. Click **Install Now**, then **Activate**.
 3. On activation you are taken to a short setup screen.
 
@@ -47,14 +47,16 @@ On the client entry you will see a **Flipbooks** panel.
 1. Click **Add flipbook**.
 2. Type a **Name**, for example Welcome letter.
 3. Click **Choose PDF** and pick or upload the PDF from the media library.
-4. Optionally click **Choose icon** to set a small icon for the sidebar. You can
-   pick one of the built-in icons, or click **Upload SVG or image** to use your
-   own SVG or image. If you skip this, a default document icon is used.
-5. Repeat **Add flipbook** for each PDF, for example a welcome letter followed by
+4. Repeat **Add flipbook** for each PDF, for example a welcome letter followed by
    a proposal.
-6. Drag the rows by the handle on the left to set their order. The top row shows
+5. Drag the rows by the handle on the left to set their order. The top row shows
    first.
-7. Update the entry to save.
+6. Update the entry to save.
+
+Sidebar icons are set on the **KDNA PDF Flipbook widget** in Elementor, under
+**Content, Sidebar icons**, using Elementor's own icon library. They are applied
+to the flipbooks in order, and there is a toggle to use the first icon for all
+of them. If no widget icon is set, a default document icon is used.
 
 ## 5. Set an access code, optional
 

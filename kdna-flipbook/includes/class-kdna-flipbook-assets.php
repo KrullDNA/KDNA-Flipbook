@@ -262,9 +262,10 @@ class Kdna_Flipbook_Assets {
 
 		$show_sidebar = ! empty( $config['sidebar'] );
 
-		// Below the flipbook the toolbar never overlaps content, so it stays put.
-		$position  = 'below' === $config['toolbar_position'] ? 'below' : 'over';
-		$behaviour = 'below' === $position ? 'persistent' : $config['toolbar_behaviour'];
+		// Above or below the flipbook the toolbar never overlaps content, so it
+		// stays put rather than fading.
+		$position = in_array( $config['toolbar_position'], array( 'below', 'above' ), true ) ? $config['toolbar_position'] : 'over';
+		$behaviour = 'over' === $position ? $config['toolbar_behaviour'] : 'persistent';
 
 		// Work out the reader hint and where it sits.
 		$hint_text     = isset( $config['hint_text'] ) ? trim( (string) $config['hint_text'] ) : '';

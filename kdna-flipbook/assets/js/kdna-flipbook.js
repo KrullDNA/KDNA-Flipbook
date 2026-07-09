@@ -317,7 +317,18 @@
 		this.numPages = 0;
 		this.pageEls = [];
 		this.rendered = {};
-		if ( this.book ) {
+
+		// Rebuild a clean book element inside the stage. After StPageFlip's destroy
+		// the old book can be left detached or with stale wrapper styles, which
+		// makes the next flipbook render blank. Rebuilding inside the stage, which
+		// StPageFlip never touches, guarantees a fresh element that is in the DOM.
+		if ( this.stage ) {
+			this.stage.innerHTML = '';
+			var fresh = document.createElement( 'div' );
+			fresh.className = 'kdna-flipbook__book';
+			this.stage.appendChild( fresh );
+			this.book = fresh;
+		} else if ( this.book ) {
 			this.book.innerHTML = '';
 		}
 	};
@@ -1780,4 +1791,22 @@
 
 	// Expose a manual hook for later stages.
 	window.kdnaFlipbookInit = initAll;
+
+	// A small diagnostic helper. Run kdnaFlipbookDebug() in the browser console.
+	window.kdnaFlipbookDebug = function () {
+		var roots = document.querySelectorAll( '.kdna-flipbook' );
+		return Array.prototype.map.call( roots, function ( root, i ) {
+			var book = root.querySelector( '.kdna-flipbook__book' );
+			var overlay = root.querySelector( '.kdna-flipbook__overlay' );
+			return {
+				viewer: i,
+				libraries: { pdfjs: !! window.pdfjsLib, stpageflip: !! ( window.St && window.St.PageFlip ) },
+				sidebarItems: root.querySelectorAll( '.kdna-flipbook__item' ).length,
+				bookChildren: book ? book.children.length : 'no book element',
+				pageCanvases: root.querySelectorAll( '.kdna-flipbook__page canvas' ).length,
+				overlayDisplay: overlay ? window.getComputedStyle( overlay ).display : 'n/a',
+				errorShown: root.querySelector( '.kdna-flipbook__message' ) ? ! root.querySelector( '.kdna-flipbook__message' ).hidden : 'n/a'
+			};
+		} );
+	};
 } )();
