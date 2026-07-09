@@ -710,6 +710,17 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 		);
 
 		$this->add_control(
+			'sidebar_item_bg',
+			array(
+				'label'     => __( 'Item background', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .kdna-flipbook' => '--kdna-flipbook-item-bg: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
 			'sidebar_active_heading',
 			array(
 				'label'     => __( 'Active item', 'kdna-flipbook' ),
