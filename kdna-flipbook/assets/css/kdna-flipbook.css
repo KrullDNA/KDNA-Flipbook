@@ -384,14 +384,17 @@
 	pointer-events: none;
 }
 
-/* Toolbar placed below the flipbook, in normal flow, never over the document. */
+/* Toolbar placed below the flipbook, in normal flow, never over the document.
+   Shrinks to its buttons and centres, rather than filling the width. */
 .kdna-flipbook--toolbar-pos-below .kdna-flipbook__toolbar {
 	position: static;
 	left: auto;
 	bottom: auto;
 	transform: none;
-	margin: 14px auto 0;
+	width: -moz-fit-content;
+	width: fit-content;
 	max-width: 100%;
+	margin: 14px auto 0;
 }
 
 /* Reader hint. */
