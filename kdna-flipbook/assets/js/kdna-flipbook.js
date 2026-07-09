@@ -106,6 +106,7 @@
 			return {
 				controls: parsed.controls || {},
 				behaviour: parsed.behaviour || 'persistent',
+				wheelZoom: !! parsed.wheelZoom,
 				autoplay: !! parsed.autoplay,
 				autoplayDelay: parsed.autoplayDelay || 5,
 				start: parsed.start || { flipbook: 0, page: 1 }
@@ -807,9 +808,16 @@
 	KdnaFlipbookViewer.prototype.setupZoom = function () {
 		var self = this;
 
+		// Wheel zoom is opt-in, so scrolling over the flipbook scrolls the page by
+		// default. When it is off but the reader is already zoomed in, the wheel
+		// still adjusts the zoom rather than trapping them.
 		if ( this.viewer ) {
 			this.viewer.addEventListener( 'wheel', function ( event ) {
 				var zoomingIn = event.deltaY < 0;
+
+				if ( ! self.config.wheelZoom && ! self.zoomActive ) {
+					return;
+				}
 
 				// At fit, let the page scroll normally when scrolling down.
 				if ( ! self.zoomActive && ! zoomingIn ) {

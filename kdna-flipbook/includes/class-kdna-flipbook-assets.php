@@ -303,6 +303,7 @@ class Kdna_Flipbook_Assets {
 				'deeplink'   => ! empty( $config['deeplink'] ),
 			),
 			'behaviour' => $behaviour,
+			'wheelZoom' => ! empty( $config['wheel_zoom'] ),
 			'autoplay'  => ! empty( $config['autoplay'] ),
 			'autoplayDelay' => max( 1, (int) $config['autoplay_delay'] ),
 			'start'     => array(
@@ -391,7 +392,10 @@ class Kdna_Flipbook_Assets {
 			$item_classes = 'kdna-flipbook__item' . ( $is_active ? ' is-active' : '' );
 
 			$icon = '<span class="kdna-flipbook__item-icon">';
-			if ( ! empty( $flipbook['icon_url'] ) ) {
+			if ( ! empty( $flipbook['icon_html'] ) ) {
+				// Icon rendered by Elementor's icon library, already safe markup.
+				$icon .= $flipbook['icon_html'];
+			} elseif ( ! empty( $flipbook['icon_url'] ) ) {
 				$icon .= '<img class="kdna-flipbook__item-img" src="' . esc_url( $flipbook['icon_url'] ) . '" alt="" />';
 			} elseif ( ! empty( $flipbook['icon_key'] ) ) {
 				$icon .= self::builtin_icon_svg( $flipbook['icon_key'] );

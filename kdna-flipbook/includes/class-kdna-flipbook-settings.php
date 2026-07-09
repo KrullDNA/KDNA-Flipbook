@@ -93,6 +93,7 @@ class Kdna_Flipbook_Settings {
 			'arrows'            => true,
 			'thumbnails'        => true,
 			'zoom'              => true,
+			'wheel_zoom'        => false,
 			'fullscreen'        => true,
 			'toc'               => true,
 			'download'          => true,
@@ -332,6 +333,10 @@ class Kdna_Flipbook_Settings {
 
 		echo '</fieldset>';
 
+		// Wheel zoom.
+		echo '<p style="margin-top:12px;"><label><input type="checkbox" name="' . esc_attr( $name ) . '[wheel_zoom]" value="1" ' . checked( ! empty( $config['wheel_zoom'] ), true, false ) . ' /> <strong>' . esc_html__( 'Zoom with the mouse wheel', 'kdna-flipbook' ) . '</strong></label>';
+		echo '<span class="description" style="display:block;">' . esc_html__( 'Off by default so scrolling over the flipbook scrolls the page. The zoom buttons and pinch on mobile still work.', 'kdna-flipbook' ) . '</span></p>';
+
 		// Toolbar behaviour.
 		echo '<p style="margin-top:12px;"><strong>' . esc_html__( 'Toolbar behaviour', 'kdna-flipbook' ) . '</strong></p>';
 		echo '<select name="' . esc_attr( $name ) . '[toolbar_behaviour]">';
@@ -476,7 +481,7 @@ class Kdna_Flipbook_Settings {
 		$clean    = array();
 
 		// Toggle controls: a checkbox is present only when ticked.
-		$toggles = array( 'arrows', 'thumbnails', 'zoom', 'fullscreen', 'toc', 'download', 'share', 'sound', 'deeplink', 'sidebar', 'hint_show' );
+		$toggles = array( 'arrows', 'thumbnails', 'zoom', 'wheel_zoom', 'fullscreen', 'toc', 'download', 'share', 'sound', 'deeplink', 'sidebar', 'hint_show' );
 		foreach ( $toggles as $key ) {
 			$clean[ $key ] = ! empty( $input[ $key ] );
 		}

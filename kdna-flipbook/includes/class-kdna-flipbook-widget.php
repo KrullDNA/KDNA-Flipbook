@@ -102,6 +102,7 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 		$this->register_start_section();
 		$this->register_controls_section();
 		$this->register_sidebar_section();
+		$this->register_sidebar_icons_section();
 		$this->register_chrome_section();
 
 		// Style tab.
@@ -263,6 +264,21 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 			);
 		}
 
+		$this->add_control(
+			'wheel_zoom',
+			array(
+				'label'        => __( 'Zoom with the mouse wheel', 'kdna-flipbook' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => __( 'On', 'kdna-flipbook' ),
+				'label_off'    => __( 'Off', 'kdna-flipbook' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'separator'    => 'before',
+				'description'  => __( 'Off by default, so scrolling over the flipbook scrolls the page. The zoom buttons and pinch on mobile still work.', 'kdna-flipbook' ),
+				'condition'    => array( 'ctrl_zoom' => 'yes' ),
+			)
+		);
+
 		$this->end_controls_section();
 	}
 
@@ -300,6 +316,81 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 		);
 
 		$this->end_controls_section();
+	}
+
+	/**
+	 * Sidebar icons section, using Elementor's own icon library.
+	 *
+	 * Icons chosen here use Elementor's icon picker, so Font Awesome and any icon
+	 * packs registered with Elementor are available. They are applied to the
+	 * flipbooks in order, and override the icon set on the client entry.
+	 */
+	protected function register_sidebar_icons_section() {
+		$this->start_controls_section(
+			'section_sidebar_icons',
+			array(
+				'label'     => __( 'Sidebar icons', 'kdna-flipbook' ),
+				'tab'       => \Elementor\Controls_Manager::TAB_CONTENT,
+				'condition' => array( 'show_sidebar' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'sidebar_icons_note',
+			array(
+				'type'            => \Elementor\Controls_Manager::RAW_HTML,
+				'raw'             => esc_html__( 'Pick an icon from the Elementor library for each flipbook, in order. The first row sets the first flipbook, the second row the second, and so on. Rows left empty fall back to the icon set on the client entry.', 'kdna-flipbook' ),
+				'content_classes' => 'elementor-descriptor',
+			)
+		);
+
+		$repeater = new \Elementor\Repeater();
+
+		$repeater->add_control(
+			'label',
+			array(
+				'label'       => __( 'Reference', 'kdna-flipbook' ),
+				'type'        => \Elementor\Controls_Manager::TEXT,
+				'default'     => '',
+				'placeholder' => __( 'For example, Welcome letter', 'kdna-flipbook' ),
+			)
+		);
+
+		$repeater->add_control(
+			'icon',
+			array(
+				'label' => __( 'Icon', 'kdna-flipbook' ),
+				'type'  => \Elementor\Controls_Manager::ICONS,
+			)
+		);
+
+		$this->add_control(
+			'sidebar_icons',
+			array(
+				'type'        => \Elementor\Controls_Manager::REPEATER,
+				'fields'      => $repeater->get_controls(),
+				'title_field' => '{{{ label ? label : "Flipbook icon" }}}',
+				'prevent_empty' => false,
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Render an Elementor icon to HTML.
+	 *
+	 * @param array $icon Elementor icon control value.
+	 * @return string
+	 */
+	protected function render_icon_html( $icon ) {
+		if ( empty( $icon ) || empty( $icon['value'] ) || ! class_exists( '\Elementor\Icons_Manager' ) ) {
+			return '';
+		}
+
+		ob_start();
+		\Elementor\Icons_Manager::render_icon( $icon, array( 'aria-hidden' => 'true' ) );
+		return trim( (string) ob_get_clean() );
 	}
 
 	/**
@@ -1261,12 +1352,24 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 			return;
 		}
 
+		// Overlay Elementor icons chosen on the widget, applied to flipbooks in order.
+		$widget_icons = ( isset( $settings['sidebar_icons'] ) && is_array( $settings['sidebar_icons'] ) ) ? array_values( $settings['sidebar_icons'] ) : array();
+		foreach ( $flipbooks as $i => $flipbook ) {
+			if ( isset( $widget_icons[ $i ]['icon'] ) ) {
+				$icon_html = $this->render_icon_html( $widget_icons[ $i ]['icon'] );
+				if ( '' !== $icon_html ) {
+					$flipbooks[ $i ]['icon_html'] = $icon_html;
+				}
+			}
+		}
+
 		$args = array(
 			'active'            => max( 0, (int) $settings['first_flipbook'] - 1 ),
 			'start_page'        => max( 1, (int) $settings['start_page'] ),
 			'arrows'            => 'yes' === $settings['ctrl_arrows'],
 			'thumbnails'        => 'yes' === $settings['ctrl_thumbnails'],
 			'zoom'              => 'yes' === $settings['ctrl_zoom'],
+			'wheel_zoom'        => 'yes' === $settings['wheel_zoom'],
 			'fullscreen'        => 'yes' === $settings['ctrl_fullscreen'],
 			'toc'               => 'yes' === $settings['ctrl_toc'],
 			'download'          => 'yes' === $settings['ctrl_download'],
