@@ -90,7 +90,7 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 	 *
 	 * @return bool
 	 */
-	protected function has_widget_inner_wrapper(): bool {
+	public function has_widget_inner_wrapper(): bool {
 		return ! \Elementor\Plugin::$instance->experiments->is_feature_active( 'e_optimized_markup' );
 	}
 
@@ -315,15 +315,66 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 		);
 
 		$this->add_control(
+			'toolbar_position',
+			array(
+				'label'   => __( 'Toolbar position', 'kdna-flipbook' ),
+				'type'    => \Elementor\Controls_Manager::SELECT,
+				'default' => 'over',
+				'options' => array(
+					'over'  => __( 'Over the document', 'kdna-flipbook' ),
+					'below' => __( 'Below the flipbook', 'kdna-flipbook' ),
+				),
+			)
+		);
+
+		$this->add_control(
 			'toolbar_behaviour',
 			array(
-				'label'   => __( 'Toolbar behaviour', 'kdna-flipbook' ),
-				'type'    => \Elementor\Controls_Manager::SELECT,
-				'default' => 'fade',
-				'options' => array(
+				'label'     => __( 'Toolbar behaviour', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::SELECT,
+				'default'   => 'fade',
+				'options'   => array(
 					'fade'       => __( 'Fade away while reading', 'kdna-flipbook' ),
 					'persistent' => __( 'Always visible', 'kdna-flipbook' ),
 				),
+				'condition' => array( 'toolbar_position' => 'over' ),
+			)
+		);
+
+		$this->add_control(
+			'hint_show',
+			array(
+				'label'        => __( 'Show reader hint', 'kdna-flipbook' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => __( 'Show', 'kdna-flipbook' ),
+				'label_off'    => __( 'Hide', 'kdna-flipbook' ),
+				'return_value' => 'yes',
+				'default'      => 'yes',
+			)
+		);
+
+		$this->add_control(
+			'hint_position',
+			array(
+				'label'     => __( 'Hint position', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::SELECT,
+				'default'   => 'sidebar',
+				'options'   => array(
+					'sidebar' => __( 'Top of the sidebar', 'kdna-flipbook' ),
+					'below'   => __( 'Below the flipbook', 'kdna-flipbook' ),
+				),
+				'condition' => array( 'hint_show' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'hint_text',
+			array(
+				'label'       => __( 'Hint text', 'kdna-flipbook' ),
+				'type'        => \Elementor\Controls_Manager::TEXTAREA,
+				'rows'        => 2,
+				'default'     => __( 'Move your mouse off the document and the navigation will disappear.', 'kdna-flipbook' ),
+				'condition'   => array( 'hint_show' => 'yes' ),
 			)
 		);
 
@@ -899,6 +950,34 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 			)
 		);
 
+		$this->add_control(
+			'hint_heading',
+			array(
+				'label'     => __( 'Reader hint', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'hint_color',
+			array(
+				'label'     => __( 'Hint colour', 'kdna-flipbook' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .kdna-flipbook' => '--kdna-flipbook-hint-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'hint_typography',
+				'selector' => '{{WRAPPER}} .kdna-flipbook__hint',
+			)
+		);
+
 		$this->end_controls_section();
 	}
 
@@ -1198,8 +1277,12 @@ class Kdna_Flipbook_Widget extends \Elementor\Widget_Base {
 			'autoplay'          => 'yes' === $settings['autoplay'],
 			'autoplay_delay'    => max( 1, (int) $settings['autoplay_delay'] ),
 			'toolbar_behaviour' => $settings['toolbar_behaviour'],
+			'toolbar_position'  => $settings['toolbar_position'],
 			'theme'             => $settings['theme'],
 			'custom_color'      => ! empty( $settings['custom_color'] ) ? $settings['custom_color'] : '#2271b1',
+			'hint_show'         => 'yes' === $settings['hint_show'],
+			'hint_position'     => $settings['hint_position'],
+			'hint_text'         => isset( $settings['hint_text'] ) ? $settings['hint_text'] : '',
 		);
 
 		Kdna_Flipbook_Assets::enqueue();

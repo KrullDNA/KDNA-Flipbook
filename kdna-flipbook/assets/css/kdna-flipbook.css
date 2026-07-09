@@ -37,6 +37,7 @@
 	--kdna-flipbook-surface-bg: #ffffff;
 	--kdna-flipbook-surface-color: #1d2327;
 	--kdna-flipbook-meta-color: inherit;
+	--kdna-flipbook-hint-color: #6b7280;
 
 	--kdna-flipbook-thumbs-bg: var( --kdna-flipbook-surface-bg );
 	--kdna-flipbook-thumb-width: 92px;
@@ -381,6 +382,35 @@
 	opacity: 0;
 	transform: translateX( -50% ) translateY( 8px );
 	pointer-events: none;
+}
+
+/* Toolbar placed below the flipbook, in normal flow, never over the document. */
+.kdna-flipbook--toolbar-pos-below .kdna-flipbook__toolbar {
+	position: static;
+	left: auto;
+	bottom: auto;
+	transform: none;
+	margin: 14px auto 0;
+	max-width: 100%;
+}
+
+/* Reader hint. */
+.kdna-flipbook__hint {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var( --kdna-flipbook-hint-color );
+}
+
+.kdna-flipbook > .kdna-flipbook__hint {
+	margin-top: 12px;
+	text-align: center;
+}
+
+.kdna-flipbook__sidebar .kdna-flipbook__hint {
+	margin: 0 0 10px;
+	padding: 2px 4px 10px;
+	border-bottom: 1px solid rgba( 128, 128, 128, 0.2 );
 }
 
 /* Thumbnails strip. */

@@ -61,6 +61,13 @@ final class Kdna_Flipbook {
 	public $assets;
 
 	/**
+	 * SVG upload handler.
+	 *
+	 * @var Kdna_Flipbook_Svg
+	 */
+	public $svg;
+
+	/**
 	 * Return the shared instance, creating it on first call.
 	 *
 	 * @return Kdna_Flipbook
@@ -91,6 +98,7 @@ final class Kdna_Flipbook {
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-meta.php';
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-access.php';
 		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-assets.php';
+		require_once KDNA_FLIPBOOK_DIR . 'includes/class-kdna-flipbook-svg.php';
 	}
 
 	/**
@@ -102,6 +110,7 @@ final class Kdna_Flipbook {
 		$this->meta     = new Kdna_Flipbook_Meta();
 		$this->access   = new Kdna_Flipbook_Access();
 		$this->assets   = new Kdna_Flipbook_Assets();
+		$this->svg      = new Kdna_Flipbook_Svg();
 
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 	}
